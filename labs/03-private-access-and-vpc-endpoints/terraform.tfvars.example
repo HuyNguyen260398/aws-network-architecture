@@ -1,0 +1,51 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+vpc_cidr       = "10.30.0.0/16"
+az_count       = 2
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# The free half of this lab
+# ---------------------------------------------------------------------------
+# An S3 gateway endpoint costs nothing: no hourly charge, no data processing
+# charge. It replaces a USD 43/month NAT gateway outright when S3 is the only
+# thing a private subnet needs to reach.
+enable_s3_gateway_endpoint = true
+
+# Restrict the endpoint to this lab's bucket. This is the control that prevents
+# data being copied from your VPC into an S3 bucket in someone else's account.
+# Set false to watch the restriction disappear.
+restrict_s3_endpoint_to_lab_bucket = true
+
+# Populated during exercise 4, after you discover from the instance which
+# AWS-owned buckets your workload actually depends on.
+# additional_s3_endpoint_bucket_arns = ["arn:aws:s3:::example-repo-bucket"]
+
+# ---------------------------------------------------------------------------
+# The chargeable half -- OFF by default
+# ---------------------------------------------------------------------------
+# Three interface endpoints in one subnet: three ENIs, ~USD 0.033/hour
+# (~USD 24/month) plus ~USD 0.01/GB. Still cheaper than a NAT gateway, and the
+# traffic never touches the public internet.
+#
+# Without these the instance exists but Session Manager cannot reach it, so you
+# can inspect routes and policies but cannot run the in-session tests.
+#
+# acknowledge_costs          = true
+# enable_interface_endpoints = true
+
+# All three are required for Session Manager. Omitting ec2messages is a classic
+# mistake that produces a session which connects and then immediately drops.
+interface_endpoints = ["ssm", "ssmmessages", "ec2messages"]
+
+# ---------------------------------------------------------------------------
+# Test instance -- ~USD 0.0053/hour
+# ---------------------------------------------------------------------------
+enable_test_instance = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

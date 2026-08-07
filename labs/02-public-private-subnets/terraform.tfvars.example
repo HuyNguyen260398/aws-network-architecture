@@ -1,0 +1,44 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+vpc_cidr       = "10.20.0.0/16"
+az_count       = 2
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# Test instances -- about USD 0.016/hour in total (USD 0.40 for a day)
+# ---------------------------------------------------------------------------
+# One t4g.nano in a public subnet, one in a private subnet. Both reached with
+# Session Manager; neither has SSH open or a key pair.
+enable_test_instances = true
+
+# ---------------------------------------------------------------------------
+# NAT gateway -- OFF by default. ~USD 43/month EACH plus ~USD 0.059/GB.
+# ---------------------------------------------------------------------------
+# Turning this on is what gives the private instance outbound internet access,
+# and therefore what lets its SSM agent register. Both flags are required.
+#
+# Turn it on, watch the private instance appear in Session Manager, run the
+# exercises, then turn it off again. Leaving it on for a month costs USD 43.
+#
+# acknowledge_costs  = true
+# enable_nat_gateway = true
+#
+# "single" = one gateway shared by every AZ (cheapest).
+# "per_az" = one per AZ (survives a zone failure, costs N times as much).
+nat_gateway_mode = "single"
+
+# ---------------------------------------------------------------------------
+# IPv6 -- free
+# ---------------------------------------------------------------------------
+# Worth enabling: it gives private subnets working outbound internet access via
+# an egress-only internet gateway at ZERO cost, which is the cheapest way to see
+# "outbound yes, inbound no" behaviour without paying for a NAT gateway.
+enable_ipv6                         = false
+enable_egress_only_internet_gateway = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }
