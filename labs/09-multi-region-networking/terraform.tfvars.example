@@ -1,0 +1,50 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+primary_region   = "ap-southeast-1"   # Singapore
+secondary_region = "ap-northeast-1"   # Tokyo, ~70 ms away
+project_name     = "awsnet"
+
+# Must not overlap. Inter-Region peering has exactly the same requirement as
+# same-Region peering -- and multi-Region is where address planning discipline
+# either pays off or fails.
+primary_vpc_cidr   = "10.90.0.0/16"
+secondary_vpc_cidr = "10.91.0.0/16"
+
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# Inter-Region VPC peering -- FREE to create
+# ---------------------------------------------------------------------------
+# You pay only for data crossing it: ~USD 0.02/GB in EACH direction, which is
+# roughly double the same-Region rate. Leave this on; it is the cheap and
+# instructive half of the lab.
+enable_vpc_peering = true
+
+# ---------------------------------------------------------------------------
+# Transit Gateway peering -- ~USD 0.20/hour (USD 146/month)
+# ---------------------------------------------------------------------------
+# Two gateways, two VPC attachments, two sides of a peering attachment. The
+# scalable answer for many VPCs across many Regions, and overkill for two.
+#
+# Worth thirty minutes if you want to see that a peering attachment does NOT
+# propagate routes -- every prefix needs a static entry on both sides, which is
+# the mistake almost everyone makes the first time.
+# acknowledge_costs              = true
+# enable_transit_gateway_peering = true
+
+# ---------------------------------------------------------------------------
+# Route 53 health checks -- ~USD 1.20/month for the pair
+# ---------------------------------------------------------------------------
+# CLOUDWATCH_METRIC checks watching each instance's EC2 status check, so no
+# inbound port has to be opened to Route 53's health checkers. These are the
+# mechanism behind failover and latency routing policies.
+enable_route53_health_checks = false
+
+# ---------------------------------------------------------------------------
+# Test instances -- ~USD 0.021/hour for the pair
+# ---------------------------------------------------------------------------
+enable_test_instances = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

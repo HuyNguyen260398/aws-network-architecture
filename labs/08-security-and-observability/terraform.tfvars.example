@@ -1,0 +1,60 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+vpc_cidr       = "10.80.0.0/16"
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# Observability -- cheap, on by default
+# ---------------------------------------------------------------------------
+# A quiet lab VPC produces a few megabytes a day, so this costs cents. Retention
+# is one day: a lab log group left at "never expire" keeps billing for storage
+# long after the VPC is gone.
+enable_flow_logs        = true
+flow_log_traffic_type   = "ALL"     # "REJECT" alone is the cheap production setting
+flow_log_retention_days = 1
+
+# 60 seconds while you are actively troubleshooting so records appear quickly;
+# 600 is cheaper for anything left running.
+flow_log_aggregation_interval = 60
+
+# USD 0.10 per analysis, two analyses. Being shown the exact blocking component
+# by name is worth rather more than twenty cents.
+run_reachability_analysis = true
+
+# Account-wide rather than lab-scoped, and you may already have one. The first
+# copy of management events is free; you pay only S3 storage.
+enable_cloudtrail = false
+
+# ---------------------------------------------------------------------------
+# The demonstration -- free
+# ---------------------------------------------------------------------------
+# A network ACL rule that denies the service port, while the security groups
+# allow it. Set enable_nacl_block = false, apply, and compare the flow logs:
+# the same connection now produces ACCEPT instead of REJECT.
+enable_nacl_block = true
+nacl_block_port   = 8080
+
+# ---------------------------------------------------------------------------
+# Test instances -- ~USD 0.016/hour
+# ---------------------------------------------------------------------------
+enable_test_instances = true
+
+# ###########################################################################
+# AWS NETWORK FIREWALL -- THE MOST EXPENSIVE RESOURCE IN THIS REPOSITORY
+#
+#   ~USD 0.395 per firewall-endpoint-hour  =  USD 9.48/day  =  USD 288/month
+#   plus ~USD 0.065 per GB inspected
+#
+# Turn it on for thirty minutes (about twenty cents), watch a stateful rule
+# drop traffic, read the alert log, and turn it off again.
+# ###########################################################################
+# acknowledge_costs       = true
+# enable_network_firewall = true
+firewall_blocked_port = 8080
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

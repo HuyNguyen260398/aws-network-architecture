@@ -9,5 +9,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    # The optional CloudTrail bucket needs a globally unique name.
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.7"
+    }
   }
 }
