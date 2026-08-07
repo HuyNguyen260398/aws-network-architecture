@@ -1,0 +1,21 @@
+# Rename to backend.tf ONLY when you want to migrate the bootstrap module's own
+# state from your local disk into the S3 bucket it created. This is optional.
+#
+#   cp backend.tf.example backend.tf
+#   cp backend.hcl.example backend.hcl        # then fill in the bucket
+#   terraform init -backend-config=backend.hcl -migrate-state
+#
+# Terraform will ask whether to copy the existing local state to S3. Answer yes.
+# Afterwards, `terraform.tfstate` on disk becomes a stale backup -- keep it until
+# you have confirmed a `terraform plan` runs clean against the new backend, then
+# delete it. It is gitignored either way.
+#
+# To go back to local state:  remove backend.tf, then `terraform init -migrate-state`.
+
+terraform {
+  backend "s3" {
+    # bucket, region, encrypt, use_lockfile come from backend.hcl so that no
+    # account-specific value is ever committed to git.
+    key = "bootstrap/terraform.tfstate"
+  }
+}

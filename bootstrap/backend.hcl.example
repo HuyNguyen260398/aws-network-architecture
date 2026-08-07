@@ -1,0 +1,26 @@
+# Only needed if you choose to MIGRATE this bootstrap module's own state into the
+# bucket it created. That is optional -- see "Migrating the bootstrap state" in
+# bootstrap/README.md. Local state is a perfectly good end state for solo learning.
+#
+# Steps:
+#   1. cp backend.tf.example backend.tf
+#   2. cp backend.hcl.example backend.hcl   and fill in the bucket below
+#   3. terraform init -backend-config=backend.hcl -migrate-state
+#
+# Fill `bucket` from:  terraform output -raw state_bucket_name
+# backend.hcl is gitignored, because the bucket name is specific to your account.
+
+bucket = "REPLACE-ME-run-terraform-output-state_bucket_name"
+region = "ap-southeast-1"
+
+# Server-side encryption for the state object.
+encrypt = true
+
+# S3 native state locking. Terraform writes a <key>.tflock object for the
+# duration of an operation. DynamoDB-based locking is deprecated -- do not add a
+# dynamodb_table here.
+use_lockfile = true
+
+# Only when bootstrap was applied with create_kms_key = true. Fill from:
+#   terraform output -raw kms_key_arn
+# kms_key_id = "arn:aws:kms:ap-southeast-1:111122223333:key/00000000-0000-0000-0000-000000000000"

@@ -1,0 +1,80 @@
+# ---------------------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------------------
+# Local provider/module cache. Never committed.
+**/.terraform/*
+**/.terraform.tfstate.lock.info
+
+# State files. The whole point of the S3 backend is that these do not live in
+# git. `bootstrap/` uses local state until you migrate it -- keep it out too.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Plan files can contain the full resource graph including sensitive values.
+*.tfplan
+*.tfplan.*
+plan.out
+crash.log
+crash.*.log
+
+# Real variable values (regions, CIDRs, emails, account-specific settings).
+# Only the *.example templates are committed.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Real backend configuration (bucket names are account-specific).
+backend.hcl
+!backend.hcl.example
+*.backend.hcl
+
+# `.terraform.lock.hcl` IS committed on purpose -- do not ignore it.
+
+# Terraform CLI configuration that may embed credentials or mirrors.
+.terraformrc
+terraform.rc
+
+# ---------------------------------------------------------------------------
+# Credentials, keys and secrets
+# ---------------------------------------------------------------------------
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+id_rsa*
+id_ed25519*
+.env
+.env.*
+!.env.example
+credentials
+.aws/
+*_rsa
+*_dsa
+*.jks
+*.keystore
+
+# ---------------------------------------------------------------------------
+# Tooling output
+# ---------------------------------------------------------------------------
+.checkov.baseline
+results_*.json
+results_*.xml
+report_*.json
+.tflint.d/
+.pre-commit-cache/
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

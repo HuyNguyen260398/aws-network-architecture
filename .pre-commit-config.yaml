@@ -1,0 +1,52 @@
+# Install with:  make precommit-install   (requires `pip install pre-commit`)
+#
+# These hooks are the fast subset of `make check`. The slow, whole-repo passes
+# (checkov, terraform test) run in CI rather than on every commit.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      # Nothing in this repo should ever be this big; a large file is usually an
+      # accidentally staged state file or provider binary.
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: detect-private-key
+      - id: detect-aws-credentials
+        args: [--allow-missing-credentials]
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.5
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+        args:
+          # Validate without contacting the S3 backend, so the hook works with
+          # no AWS credentials and before bootstrap has ever been run.
+          - --tf-init-args=-backend=false
+          - --hook-config=--retry-once-with-cleanup=true
+      - id: terraform_tflint
+        args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
+          - --args=--minimum-failure-severity=error
+
+  # Secret detection. Gitleaks catches credential shapes that the AWS-specific
+  # hook above misses (GitHub tokens, private keys pasted into Markdown, etc).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+exclude: |
+  (?x)^(
+    .*/\.terraform/.*|
+    .*\.terraform\.lock\.hcl
+  )$
