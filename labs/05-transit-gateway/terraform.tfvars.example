@@ -1,0 +1,60 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+# ###########################################################################
+# COST GATE -- the most expensive lab in this repository
+#
+#   Transit Gateway                free
+#   Each VPC attachment            ~USD 0.05/hour  (~USD 36/month EACH)
+#   Data processed                 ~USD 0.02/GB
+#
+#   Three attachments = ~USD 0.15/hour = ~USD 3.60/day = ~USD 110/month
+#
+# With these left false, the lab creates three free, unconnected VPCs so you
+# can read the topology and the route table code at zero cost.
+#
+# Turn both on, work through the exercises in one sitting (about an hour, so
+# roughly fifteen cents), then run 'terraform destroy'.
+# ###########################################################################
+# acknowledge_costs      = true
+# enable_transit_gateway = true
+
+# ---------------------------------------------------------------------------
+# Addressing
+# ---------------------------------------------------------------------------
+prod_vpc_cidr   = "10.50.0.0/16"
+dev_vpc_cidr    = "10.51.0.0/16"
+shared_vpc_cidr = "10.52.0.0/16"
+
+# One summary route per VPC instead of one per remote VPC. Covers 10.48.0.0
+# through 10.63.255.255, so a fourth spoke needs no VPC route table changes at
+# all -- only a Transit Gateway propagation.
+supernet_cidr = "10.48.0.0/12"
+
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# Blackhole route
+# ---------------------------------------------------------------------------
+# Traffic to this prefix is silently discarded at the gateway. RFC 5737
+# documentation range by default, so nothing real is affected. This is how you
+# quarantine a range instantly across every attached VPC.
+blackhole_cidr = "192.0.2.0/24"
+
+# ---------------------------------------------------------------------------
+# Segmentation
+# ---------------------------------------------------------------------------
+# Leave false, confirm that prod and dev cannot reach each other, then set true
+# and watch a single propagation collapse the boundary between two environments.
+allow_dev_to_prod = false
+
+# ---------------------------------------------------------------------------
+# Test instances -- ~USD 0.031/hour for three
+# ---------------------------------------------------------------------------
+enable_test_instances = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }
