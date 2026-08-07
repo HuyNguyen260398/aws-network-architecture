@@ -1,0 +1,151 @@
+#!/bin/bash
+# =============================================================================
+# Simulated on-premises VPN router
+#
+# Rendered by Terraform from the REAL tunnel parameters that AWS generated for
+# this Site-to-Site VPN connection: the two endpoint addresses and the two
+# pre-shared keys. Nothing here is a placeholder.
+#
+# libreswan rather than strongSwan: strongSwan is not packaged for Amazon Linux
+# 2023, libreswan is. The configuration syntax below is the Openswan/Libreswan
+# ipsec.conf format, which is what AWS's own "Openswan" sample configuration
+# targets.
+#
+# For your own device, AWS will generate a vendor-specific configuration:
+#   aws ec2 get-vpn-connection-device-sample-configuration \
+#     --vpn-connection-id <id> --vpn-connection-device-type-id <type>
+#   aws ec2 get-vpn-connection-device-types
+# =============================================================================
+set -euxo pipefail
+
+exec > >(tee -a /var/log/lab07-router-setup.log) 2>&1
+echo "=== lab 07 on-premises router setup starting at $(date -Is) ==="
+
+dnf install -y libreswan iproute tcpdump bind-utils
+
+# ---------------------------------------------------------------------------
+# Kernel settings
+#
+# ip_forward: this instance routes packets between the on-premises subnet and
+#   the tunnel. Without it, packets addressed to the AWS VPC arrive and are
+#   dropped by the kernel.
+#
+# rp_filter: reverse-path filtering discards packets whose source address is
+#   not reachable via the interface they arrived on. Traffic emerging from an
+#   IPsec tunnel routinely fails that test, so libreswan requires it off. This
+#   is a documented libreswan prerequisite, not a shortcut.
+# ---------------------------------------------------------------------------
+cat > /etc/sysctl.d/99-vpn-router.conf <<'SYSCTL'
+net.ipv4.ip_forward = 1
+net.ipv4.conf.all.rp_filter = 0
+net.ipv4.conf.default.rp_filter = 0
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+SYSCTL
+sysctl --system
+
+# Per-interface rp_filter is set at interface creation, so existing interfaces
+# need it cleared explicitly.
+for iface in /proc/sys/net/ipv4/conf/*/rp_filter; do echo 0 > "$iface"; done
+
+# ---------------------------------------------------------------------------
+# Tunnel configuration
+#
+# AWS provisions TWO tunnels to two endpoints in two Availability Zones. Both
+# are configured here. With static routing only one carries traffic at a time;
+# the second takes over if the first drops.
+#
+# encapsulation=yes forces UDP encapsulation on port 4500. This instance sits
+# behind the internet gateway's 1:1 NAT, so raw ESP (IP protocol 50) would not
+# survive the round trip.
+#
+# leftid is the Elastic IP, not the instance's private address: that is the
+# identity AWS expects, and it is what the customer gateway record names.
+# ---------------------------------------------------------------------------
+cat > /etc/ipsec.d/aws-vpn.conf <<'IPSECCONF'
+conn %default
+    keyingtries=%forever
+    keyexchange=ike
+    ikev2=insist
+    # Must match the algorithms pinned on the AWS side in main.tf.
+    ike=aes256-sha2_256-dh14
+    esp=aes256-sha2_256-dh14
+    ikelifetime=28800s
+    salifetime=3600s
+    # Dead peer detection: without it, a tunnel that has silently failed stays
+    # "up" in the local view and traffic disappears into it.
+    dpddelay=10s
+    dpdtimeout=30s
+    dpdaction=restart
+    encapsulation=yes
+    type=tunnel
+    authby=secret
+
+conn aws-tunnel1
+    auto=start
+    left=%defaultroute
+    leftid=${on_premises_public_ip}
+    leftsubnet=${on_premises_cidr}
+    right=${tunnel1_address}
+    rightid=${tunnel1_address}
+    rightsubnet=${aws_vpc_cidr}
+
+conn aws-tunnel2
+    auto=start
+    left=%defaultroute
+    leftid=${on_premises_public_ip}
+    leftsubnet=${on_premises_cidr}
+    right=${tunnel2_address}
+    rightid=${tunnel2_address}
+    rightsubnet=${aws_vpc_cidr}
+IPSECCONF
+
+# ---------------------------------------------------------------------------
+# Pre-shared keys
+#
+# These are the keys AWS generated. 0600 and root-owned: anyone who reads this
+# file can impersonate the on-premises end of the tunnel.
+# ---------------------------------------------------------------------------
+umask 077
+cat > /etc/ipsec.d/aws-vpn.secrets <<'IPSECSECRETS'
+${on_premises_public_ip} ${tunnel1_address} : PSK "${tunnel1_preshared_key}"
+${on_premises_public_ip} ${tunnel2_address} : PSK "${tunnel2_preshared_key}"
+IPSECSECRETS
+chmod 600 /etc/ipsec.d/aws-vpn.secrets
+chown root:root /etc/ipsec.d/aws-vpn.secrets
+umask 022
+
+# ---------------------------------------------------------------------------
+# A status helper, so the lab exercises have one command to run.
+# ---------------------------------------------------------------------------
+cat > /usr/local/bin/tunnel-status <<'STATUS'
+#!/bin/bash
+echo "=== IPsec service ==="
+systemctl is-active ipsec || true
+echo
+echo "=== Security associations (look for ISAKMP SA established / IPsec SA established) ==="
+ipsec status | grep -E 'aws-tunnel[12]' || echo "no matching connections"
+echo
+echo "=== Established tunnels ==="
+ipsec trafficstatus || true
+echo
+echo "=== IPsec policies in the kernel ==="
+ip xfrm policy list | head -40
+echo
+echo "If the tunnels are down, start with:  journalctl -u ipsec -n 100 --no-pager"
+STATUS
+chmod 0755 /usr/local/bin/tunnel-status
+
+systemctl enable --now ipsec
+
+# Give the daemon a moment, then bring the connections up explicitly. auto=start
+# should already have done this; doing it again is harmless and makes the log
+# useful when it has not.
+sleep 10
+ipsec auto --add aws-tunnel1 || true
+ipsec auto --add aws-tunnel2 || true
+ipsec auto --up aws-tunnel1 || true
+ipsec auto --up aws-tunnel2 || true
+
+echo "=== lab 07 on-premises router setup finished at $(date -Is) ==="
+/usr/local/bin/tunnel-status || true

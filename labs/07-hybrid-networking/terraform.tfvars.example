@@ -1,0 +1,95 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+# ---------------------------------------------------------------------------
+# Addressing -- the rule that makes or breaks a hybrid design
+# ---------------------------------------------------------------------------
+# These must never overlap. A VPN between overlapping networks carries no
+# traffic, and the fix is re-addressing one side, which in a real data centre
+# is a project rather than a change.
+aws_vpc_cidr     = "10.70.0.0/16"
+on_premises_cidr = "192.168.0.0/16"
+
+subnet_newbits = 8
+
+# ###########################################################################
+# COST GATE
+#
+#   Customer gateway, virtual private gateway, DX gateway   FREE
+#   Site-to-Site VPN connection      ~USD 0.05/hour (~USD 36/month)
+#                                    BILLED FROM CREATION, even if no tunnel
+#                                    ever comes up
+#   Simulated on-premises router     ~USD 0.026/hour
+#   Transit Gateway attachments      ~USD 0.05/hour each
+#
+# With these left false the lab creates only free resources.
+# ###########################################################################
+# acknowledge_costs       = true
+# enable_site_to_site_vpn = true
+
+# ---------------------------------------------------------------------------
+# The other end of the tunnel -- pick ONE
+# ---------------------------------------------------------------------------
+
+# Option A: a real, simulated on-premises network.
+#
+# A second VPC with a t4g.small running libreswan, configured from the actual
+# pre-shared keys and endpoint addresses AWS generates. The tunnels genuinely
+# come UP -- watch it with 'aws ec2 describe-vpn-connections'.
+#
+# Requires enable_site_to_site_vpn = true. Static routing only: the router runs
+# IPsec but no BGP daemon.
+#
+# enable_simulated_on_premises = true
+
+# Option B: bring your own device.
+#
+# Set the public IP of your real VPN appliance and leave the simulation off.
+# UDP 500 and 4500 must reach it, and it must not be behind NAT you do not
+# control. AWS will generate a configuration for your specific vendor:
+#   aws ec2 get-vpn-connection-device-types
+#   aws ec2 get-vpn-connection-device-sample-configuration --vpn-connection-id ... --vpn-connection-device-type-id ...
+#
+# customer_gateway_ip = "203.0.113.10"
+
+# ---------------------------------------------------------------------------
+# Routing
+# ---------------------------------------------------------------------------
+# Static: AWS is told which prefixes live on the far side. Simple, and all the
+#         simulated router supports.
+# BGP:    routes are learned dynamically, both tunnels can be active with ECMP,
+#         and failover takes seconds. Requires a real BGP-capable device, so it
+#         cannot be combined with the simulation.
+use_bgp = false
+
+# Private ASN for your on-premises side. Must differ from the AWS side's 64512.
+customer_gateway_bgp_asn = 65000
+
+# ---------------------------------------------------------------------------
+# Terminate on a Transit Gateway instead of a virtual private gateway
+# ---------------------------------------------------------------------------
+# What real hybrid designs do: one VPN attachment serves every VPC on the
+# gateway, whereas a virtual private gateway serves exactly one VPC and cannot
+# be shared. Adds ~USD 0.10/hour in attachment charges.
+enable_transit_gateway_attachment = false
+
+# ---------------------------------------------------------------------------
+# Direct Connect gateway -- FREE
+# ---------------------------------------------------------------------------
+# A DX gateway with no virtual interfaces attached costs nothing, and it is a
+# real resource worth creating and inspecting. The physical connection and the
+# virtual interfaces need a cross-connect at a colocation facility and cannot
+# be created from Terraform -- the README explains what that would involve.
+enable_direct_connect_gateway = false
+direct_connect_gateway_asn    = 64513
+
+# ---------------------------------------------------------------------------
+# Test instance -- ~USD 0.010/hour
+# ---------------------------------------------------------------------------
+enable_test_instance = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }
