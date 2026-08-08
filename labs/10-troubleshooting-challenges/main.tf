@@ -363,6 +363,14 @@ resource "random_id" "bucket_suffix" {
 }
 
 resource "aws_s3_bucket" "challenge" {
+  # Versioning and Block Public Access ARE configured, immediately below.
+  # Checkov cannot evaluate `local.need_s3_endpoint` (it is derived from a
+  # contains() call over a set variable), so it fails to link this bucket to its
+  # count-indexed companion resources and reports them missing. The suppressions
+  # are for that analysis gap, not for a real one -- delete them and read the
+  # next thirty lines if you want to check.
+  #checkov:skip=CKV_AWS_21:Versioning is configured by aws_s3_bucket_versioning.challenge below
+  #checkov:skip=CKV2_AWS_6:Block Public Access is configured by aws_s3_bucket_public_access_block.challenge below
   count = local.need_s3_endpoint ? 1 : 0
 
   bucket        = "${local.name_prefix}-${random_id.bucket_suffix[0].hex}"

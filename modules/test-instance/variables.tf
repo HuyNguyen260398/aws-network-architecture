@@ -192,6 +192,12 @@ variable "root_volume_size_gb" {
   }
 }
 
+variable "ebs_optimized" {
+  description = "Dedicate bandwidth to EBS traffic. Every current-generation (Nitro) instance type is EBS-optimised by default, so leaving this true costs nothing on t4g and similar. Older families are not optimised by default and do incur a charge; set false if you deliberately choose one of those."
+  type        = bool
+  default     = true
+}
+
 variable "enable_detailed_monitoring" {
   description = "Enable 1-minute CloudWatch metrics instead of the free 5-minute metrics. Costs roughly USD 2.10 per instance per month."
   type        = bool

@@ -18,15 +18,6 @@
 # charges in this lab are the optional test instances.
 # =============================================================================
 
-data "aws_availability_zones" "available" {
-  state = "available"
-
-  filter {
-    name   = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
-}
-
 module "vpc" {
   source   = "../../modules/vpc"
   for_each = local.active_vpcs

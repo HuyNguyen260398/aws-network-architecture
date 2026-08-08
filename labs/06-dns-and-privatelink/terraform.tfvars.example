@@ -1,0 +1,65 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region   = "ap-southeast-1"
+project_name = "awsnet"
+
+# ---------------------------------------------------------------------------
+# Addressing -- and the point PrivateLink makes about it
+# ---------------------------------------------------------------------------
+# These are allowed to be IDENTICAL. PrivateLink exchanges no routes, so there
+# is no address conflict to resolve. Set both to 10.60.0.0/16 and the lab still
+# works -- then try the same thing in lab 04 and watch it be refused.
+provider_vpc_cidr = "10.60.0.0/16"
+consumer_vpc_cidr = "10.61.0.0/16"
+
+subnet_newbits = 8
+
+# ---------------------------------------------------------------------------
+# DNS -- USD 0.50/month per hosted zone, regardless of query volume
+# ---------------------------------------------------------------------------
+private_zone_name = "lab06.internal"
+
+# A domain that also exists publicly, published as a private zone so it resolves
+# DIFFERENTLY inside the VPC. example.com is reserved for documentation by
+# RFC 2606, so no real service is affected. Set to null to skip.
+split_horizon_domain = "example.com"
+
+# ---------------------------------------------------------------------------
+# PrivateLink -- ~USD 0.045/hour (NLB + endpoint ENI + provider instance)
+# ---------------------------------------------------------------------------
+# This is the half that demonstrates PrivateLink rather than describing it, and
+# it is comparatively cheap. Worth turning on.
+# acknowledge_costs  = true
+# enable_privatelink = true
+
+# ###########################################################################
+# ROUTE 53 RESOLVER ENDPOINTS -- USD 0.25/HOUR EACH
+#
+# USD 0.125 per ENI-hour, and AWS REQUIRES A MINIMUM OF TWO ENIs in different
+# Availability Zones. There is no cheaper configuration.
+#
+#   USD 0.25/hour  =  USD 6/day  =  USD 180/month, per endpoint.
+#
+# Turn one on for twenty minutes (about eight cents), run the tests, turn it
+# off. Do not leave these running.
+# ###########################################################################
+# enable_resolver_inbound_endpoint  = true
+# enable_resolver_outbound_endpoint = true
+
+# Which domain the outbound endpoint forwards, and to where. The default target
+# is an RFC 5737 documentation address that will not answer -- deliberately, so
+# you see what a misconfigured on-premises forwarder looks like. In a real
+# deployment these are on-premises resolvers reachable over the VPN from lab 07.
+forward_domain     = "corp.internal"
+forward_target_ips = ["192.0.2.53"]
+
+# ---------------------------------------------------------------------------
+# Test instances -- ~USD 0.010/hour each
+# ---------------------------------------------------------------------------
+# The consumer host is always created; the provider host only when PrivateLink
+# is enabled, since it is the thing being published.
+enable_test_instances = true
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

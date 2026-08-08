@@ -1,7 +1,11 @@
 # Checkov configuration -- run with `make security` (or `checkov --config-file .checkov.yaml`).
 #
-# Every suppression below is a deliberate, documented decision for a *learning*
-# repository. Read the reason before copying any of this into production code.
+# Every suppression below is a deliberate decision with a stated reason. Read
+# the reason before copying any of this into production code -- several of these
+# are correct for a disposable learning lab and wrong for a real workload.
+#
+# Suppressions that apply to ONE resource live as inline `#checkov:skip=` comments
+# next to that resource, not here.
 
 directory:
   - .
@@ -24,40 +28,125 @@ skip-path:
   - docs/superpowers
 
 skip-check:
-  # --- Cost-driven suppressions -------------------------------------------
-  # CKV_AWS_144: S3 cross-region replication. Replicating lab state to a second
-  #   region doubles storage cost and teaches nothing about networking.
+  # ===========================================================================
+  # Cost-driven. Correct for a lab, reconsider for production.
+  # ===========================================================================
+
+  # CKV_AWS_145: S3 buckets encrypted with KMS.
+  #   Every bucket here uses SSE-S3 (AES256), which encrypts objects at rest at
+  #   no charge. A customer-managed KMS key costs ~USD 1/month plus request
+  #   charges. bootstrap/ exposes `create_kms_key` for anyone who wants to
+  #   practise key policies or needs auditable key usage.
+  - CKV_AWS_145
+
+  # CKV_AWS_144: S3 cross-region replication.
+  #   Replicating lab state to a second Region doubles storage cost and teaches
+  #   nothing about networking.
   - CKV_AWS_144
-  # CKV2_AWS_62: S3 event notifications on the state bucket. Not useful here.
-  - CKV2_AWS_62
-  # CKV_AWS_18 / CKV2_AWS_61: S3 access logging + lifecycle on the state bucket.
-  #   Access logging needs a second bucket, and expiring state object versions
-  #   can destroy your only recovery path. Both are wrong for a state bucket.
+
+  # CKV_AWS_18 / CKV2_AWS_61: S3 access logging and lifecycle on the state bucket.
+  #   Access logging needs a second bucket. Expiring state object VERSIONS can
+  #   destroy your only recovery path from a corrupted state file. Both are
+  #   actively wrong for a Terraform state bucket. (bootstrap/ does configure a
+  #   lifecycle rule; it deliberately keeps the newest 5 versions forever.)
   - CKV_AWS_18
   - CKV2_AWS_61
-  # CKV_AWS_338: 1-year CloudWatch log retention. These labs deliberately use
-  #   1-day retention so learners are not billed for logs they forget about.
+
+  # CKV2_AWS_62: S3 event notifications. Not useful for a state bucket.
+  - CKV2_AWS_62
+
+  # CKV_AWS_338: 1-year CloudWatch Logs retention.
+  #   These labs default to 1 day so a forgotten lab does not keep billing for
+  #   log storage after its VPC is destroyed. Retention is a variable in every
+  #   lab that creates a log group.
   - CKV_AWS_338
-  # CKV_AWS_158: KMS encryption for CloudWatch log groups. A customer-managed
-  #   key costs $1/month per key; log groups are encrypted with an AWS-owned key
-  #   by default. `modules/flow-logs` exposes `kms_key_id` for those who want it.
+
+  # CKV_AWS_158 / CKV_AWS_66: KMS encryption for CloudWatch log groups.
+  #   Log groups are encrypted with an AWS-owned key by default. A
+  #   customer-managed key costs USD 1/month per key. modules/flow-logs exposes
+  #   `kms_key_id` for those who want one.
   - CKV_AWS_158
-  # CKV_AWS_66: CloudWatch log group KMS -- same reasoning as CKV_AWS_158.
   - CKV_AWS_66
 
-  # --- Teaching-driven suppressions ---------------------------------------
-  # CKV_AWS_130: "subnet should not auto-assign public IPs". Lab 02 exists
-  #   specifically to teach what auto-assign does. It is opt-in per subnet and
-  #   defaults to false in `modules/vpc`.
-  - CKV_AWS_130
-  # CKV2_AWS_11 / CKV2_AWS_12: flow logs and default-SG restriction on every VPC.
-  #   Lab 08 teaches flow logs; enabling them everywhere would bill every lab.
-  #   `modules/vpc` DOES lock the default security group down to zero rules.
-  - CKV2_AWS_11
-  # CKV_AWS_126: detailed EC2 monitoring. Costs extra per instance; the
-  #   `test-instance` module exposes `enable_detailed_monitoring` for opt-in.
+  # CKV_AWS_126: EC2 detailed monitoring.
+  #   ~USD 2.10/instance/month for 1-minute metrics instead of the free 5-minute
+  #   ones. modules/test-instance exposes `enable_detailed_monitoring`.
   - CKV_AWS_126
-  # CKV_AWS_79: IMDSv1. Every instance in this repo sets http_tokens=required.
-  #   Kept in the list only because Checkov flags launch templates it cannot
-  #   evaluate; see modules/test-instance/main.tf for the actual setting.
-  # (intentionally NOT skipped -- we want this to stay enforced)
+
+  # CKV2_AWS_10: CloudTrail integrated with CloudWatch Logs.
+  #   Lab 08's optional trail delivers to S3 only. Streaming management events
+  #   to CloudWatch Logs as well adds ingestion charges for a lab that reads the
+  #   trail once. The lab documents how to add it.
+  - CKV2_AWS_10
+
+  # ===========================================================================
+  # Teaching-driven. The behaviour being flagged IS the lesson.
+  # ===========================================================================
+
+  # CKV_AWS_88: EC2 instances should not have a public IP.
+  #   Several labs put test instances in public subnets with public IPs, because
+  #   that is the cheapest way to give them a Session Manager path without a
+  #   USD 43/month NAT gateway or USD 24/month of interface endpoints. The
+  #   instances have NO inbound rules and no SSH; the public address is used
+  #   only for the SSM agent's OUTBOUND connection. Every module defaults
+  #   `associate_public_ip_address` to false and each lab opts in explicitly.
+  - CKV_AWS_88
+
+  # CKV_AWS_130: Subnets should not auto-assign public IPs.
+  #   Lab 02 exists specifically to teach what `map_public_ip_on_launch` does.
+  #   It is per-subnet and defaults to false in modules/vpc.
+  - CKV_AWS_130
+
+  # CKV_AWS_352: Network ACL ingress allows all ports.
+  #   The labs' ACLs allow all protocols FROM THE VPC CIDR, leaving fine-grained
+  #   filtering to security groups. That is the recommended layering: ACLs as a
+  #   coarse subnet-level backstop, security groups as the real control. The
+  #   rules are scoped to the VPC range, not to 0.0.0.0/0.
+  - CKV_AWS_352
+
+  # CKV_AWS_231: Network ACL allows ingress from 0.0.0.0/0 to port 3389.
+  #   This fires on the EPHEMERAL PORT rule (TCP 1024-65535 from 0.0.0.0/0),
+  #   which happens to include 3389. Network ACLs are stateless: without an
+  #   inbound allow covering the ephemeral range, the reply to every outbound
+  #   connection is silently dropped. The rule is mandatory, not optional, and
+  #   labs 01 and 08 explain exactly why. No RDP service exists in any lab.
+  - CKV_AWS_231
+
+  # CKV2_AWS_11 / CKV2_AWS_12: flow logs and default-SG restriction on every VPC.
+  #   Lab 08 teaches flow logs; enabling them on every VPC in every lab would
+  #   bill for logs nobody reads. modules/vpc DOES strip every rule from the
+  #   default security group (`manage_default_security_group`, default true) --
+  #   CKV2_AWS_12 does not recognise the aws_default_security_group pattern.
+  - CKV2_AWS_11
+  - CKV2_AWS_12
+
+  # ===========================================================================
+  # Analysis limitations. The control IS present; Checkov cannot see it.
+  # ===========================================================================
+
+  # CKV2_AWS_5: Security groups should be attached to a resource.
+  #   Every security group in this repository is attached -- to an EC2 instance,
+  #   a VPC endpoint, or a Resolver endpoint. Checkov's graph does not follow
+  #   the attachment across the module boundary between modules/test-instance
+  #   (which creates the group) and the lab (which consumes it).
+  - CKV2_AWS_5
+
+  # CKV2_AWS_1: Network ACLs should be attached to subnets.
+  #   Every ACL here sets `subnet_ids` inline on aws_network_acl, which is a
+  #   valid and preferable alternative to separate aws_network_acl_association
+  #   resources. Checkov only recognises the latter.
+  - CKV2_AWS_1
+
+  # CKV2_AWS_23: Route 53 A records should have an attached resource.
+  #   The A records in labs 06 and 10 point at EC2 private IP addresses, which
+  #   is the entire point of a private hosted zone. Checkov expects an alias to
+  #   a load balancer or CloudFront distribution.
+  - CKV2_AWS_23
+
+# NOT skipped, and deliberately so -- these must keep passing:
+#   CKV_AWS_79   IMDSv1 must be disabled. Every instance sets http_tokens=required.
+#   CKV_AWS_8    EBS volumes must be encrypted.
+#   CKV_AWS_24   No SSH from 0.0.0.0/0.
+#   CKV_AWS_260  No HTTP from 0.0.0.0/0.
+#   CKV_AWS_20   No public-read S3 buckets.
+#   CKV_AWS_23   Security group rules must have descriptions.

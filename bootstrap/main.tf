@@ -160,6 +160,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "state" {
 
       filter {}
 
+      # Repeated from the rule above. S3 applies each rule independently, so a
+      # rule without this clause does not inherit it, and an interrupted upload
+      # matching only this rule would otherwise be billed indefinitely.
+      abort_incomplete_multipart_upload {
+        days_after_initiation = 7
+      }
+
       noncurrent_version_expiration {
         noncurrent_days = var.noncurrent_version_expiration_days
         # Always keep the last few versions regardless of age, so there is a

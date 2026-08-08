@@ -166,6 +166,12 @@ resource "aws_instance" "this" {
   source_dest_check           = var.source_dest_check
   monitoring                  = var.enable_detailed_monitoring
 
+  # Every current-generation (Nitro) instance type is EBS-optimised by default,
+  # so this is a no-op for t4g and friends rather than an extra charge. It is
+  # set explicitly because older instance families are NOT optimised by default,
+  # and someone overriding instance_type should get the good behaviour.
+  ebs_optimized = var.ebs_optimized
+
   user_data                   = var.user_data
   user_data_replace_on_change = var.user_data_replace_on_change
 

@@ -19,8 +19,6 @@
 # That last difference is usually what decides which one a design needs.
 # =============================================================================
 
-data "aws_region" "current" {}
-
 # Looking the service name up rather than composing
 # "com.amazonaws.<region>.<service>" by hand means a typo fails at plan time
 # with a clear error, instead of at apply time with an opaque one. It also
