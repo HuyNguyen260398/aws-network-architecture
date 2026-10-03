@@ -23,7 +23,7 @@ the fact that the difference is one route.
 module "vpc" {
   source = "../../modules/vpc"
 
-  name       = "lab02"
+  name       = "shop"
   cidr_block = "10.20.0.0/16"
 
   public_subnets = {

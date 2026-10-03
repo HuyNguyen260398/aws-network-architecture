@@ -44,7 +44,7 @@ actual internet, and you would otherwise need a dozen interface endpoints.
 module "endpoints" {
   source = "../../modules/vpc-endpoints"
 
-  name   = "lab03"
+  name   = "shop"
   vpc_id = module.vpc.vpc_id
 
   # Free. Must be attached to the route tables of the subnets that will use it.

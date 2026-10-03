@@ -1,0 +1,159 @@
+# The shop on Kubernetes. Rendered by Terraform; apply with:
+#
+#   terraform output -raw k8s_manifest | kubectl apply -f -
+#
+# Read it top to bottom: each object answers one networking question.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shop
+---
+# The application code, mounted into every pod. Not networking -- it just
+# saves building an image.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app
+  namespace: shop
+data:
+  app.py: |
+    ${indent(4, app_script)}
+---
+# PODS. Each replica is a pod with its own IP address, taken from the VPC
+# subnet its node is in. Containers in one pod would share that address.
+# Pods are disposable: delete one and its replacement has a DIFFERENT address.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  namespace: shop
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: payment }
+  template:
+    metadata:
+      labels: { app: payment }
+    spec:
+      containers:
+        - name: payment
+          image: ${image}
+          command: ["python", "/app/app.py", "payment-pod", "${payment_port}"]
+          ports:
+            - containerPort: ${payment_port}
+          readinessProbe:
+            httpGet: { path: /, port: ${payment_port} }
+          volumeMounts:
+            - { name: app, mountPath: /app }
+      volumes:
+        - name: app
+          configMap: { name: app }
+---
+# SERVICE. A stable virtual address and a DNS name (payment.shop.svc) in
+# front of whichever payment pods are healthy right now. This is the answer to
+# "pod addresses keep changing": clients never use them.
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  namespace: shop
+spec:
+  selector: { app: payment }
+  ports:
+    - port: ${payment_port}
+      targetPort: ${payment_port}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: shop
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: frontend }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: ${image}
+          # The upstream is the payment SERVICE NAME, resolved by cluster DNS.
+          command: ["python", "/app/app.py", "frontend-pod", "8080", "http://payment:${payment_port}/"]
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+          volumeMounts:
+            - { name: app, mountPath: /app }
+      volumes:
+        - name: app
+          configMap: { name: app }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: shop
+spec:
+  selector: { app: frontend }
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+# INGRESS. Services are reachable only inside the cluster. An Ingress routes
+# requests from OUTSIDE to Services, by host name and URL path. On EKS Auto
+# Mode it is implemented by an Application Load Balancer that the cluster
+# creates for you -- the same thing lab 05 built by hand.
+apiVersion: eks.amazonaws.com/v1
+kind: IngressClassParams
+metadata:
+  name: alb
+spec:
+  scheme: internet-facing
+  subnets:
+    ids:
+%{ for id in public_subnet_ids ~}
+      - ${id}
+%{ endfor ~}
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: alb
+spec:
+  controller: eks.amazonaws.com/alb
+  parameters:
+    apiGroup: eks.amazonaws.com
+    kind: IngressClassParams
+    name: alb
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop
+  namespace: shop
+spec:
+  ingressClassName: alb
+  rules:
+    # By HOST: anything sent with "Host: pay.shop.test" goes to payment.
+    - host: pay.shop.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: payment, port: { number: ${payment_port} } }
+    # By PATH: /pay goes to payment, everything else to the frontend.
+    - http:
+        paths:
+          - path: /pay
+            pathType: Prefix
+            backend:
+              service: { name: payment, port: { number: ${payment_port} } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: frontend, port: { number: 80 } }
