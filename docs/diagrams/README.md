@@ -47,6 +47,9 @@ canvas, so it looks identical in GitHub's light and dark modes:
 
 ## The whole repository
 
+One project, fourteen stages. Each lab changes the network the previous one
+built, so the order is a straight line.
+
 ```mermaid
 ---
 config:
@@ -68,53 +71,46 @@ config:
 ---
 flowchart LR
     subgraph CANVAS[" "]
-        subgraph FOUND["Foundations — free or cents"]
-            L01["01 · VPC fundamentals"]
-            L02["02 · Public/private subnets"]
-            L03["03 · VPC endpoints"]
+        subgraph FOUND["One network · the video's story"]
+            L01["01 · Single server<br/><i>IP, DNS, ports</i>"]
+            L02["02 · Segmentation<br/><i>subnets, firewalls</i>"]
+            L03["03 · NAT"]
+            L04["04 · VPC endpoints"]
         end
-
-        subgraph CONN["Connectivity"]
-            L04["04 · VPC peering"]
-            L05["05 · Transit Gateway"]
-            L06["06 · DNS and PrivateLink"]
-            L09["09 · Multi-Region"]
+        subgraph APPS["Running applications on it"]
+            L05["05 · Load balancing"]
+            L06["06 · Containers"]
+            L07["07 · Kubernetes<br/><b>~$0.25/hr</b>"]
         end
-
-        subgraph HYB["Hybrid"]
-            L07["07 · Site-to-Site VPN<br/>Direct Connect concepts"]
-        end
-
-        subgraph OPS["Operations"]
+        subgraph OPS["Operating it"]
             L08["08 · Security and observability"]
-            L10["10 · Troubleshooting"]
+            L14["14 · Troubleshooting"]
         end
-
-        BOOT["bootstrap · S3 state backend"]
+        subgraph MANY["More than one network"]
+            L09["09 · VPC peering"]
+            L10["10 · Transit Gateway<br/><b>~$0.15/hr</b>"]
+            L11["11 · DNS and PrivateLink"]
+            L12["12 · Hybrid VPN<br/><b>~$0.08/hr</b>"]
+            L13["13 · Multi-Region"]
+        end
     end
 
-    BOOT --> FOUND
-    L01 --> L02 --> L03
-    L02 --> L04 --> L05
-    L03 --> L06
-    L05 --> L07
-    L06 --> L07
-    L04 --> L09
-    L05 --> L09
-    L02 --> L08 --> L10
+    L01 --> L02 --> L03 --> L04 --> L05 --> L06 --> L07 --> L08
+    L08 --> L09 --> L10 --> L11 --> L12 --> L13 --> L14
 
     classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
     classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
     classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
-    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
     classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
 
     class CANVAS canvas
-    class FOUND,CONN,HYB,OPS vpc
+    class FOUND,APPS,OPS,MANY vpc
+    class L07,L10,L12 billed
     class L01 free
-    class BOOT gateway
-    class L05,L07 billed
 ```
+
+Red marks labs whose opt-ins have a meaningful hourly charge. The architecture
+the project ends up with is drawn in the root [`README.md`](../../README.md#architecture).
 
 ---
 
@@ -303,7 +299,7 @@ Full method in [`../troubleshooting.md`](../troubleshooting.md).
 
 ---
 
-## The five expensive resources
+## The six expensive resources
 
 ```mermaid
 ---
@@ -328,23 +324,24 @@ flowchart LR
     subgraph CANVAS[" "]
         NFW["<b>Network Firewall</b><br/>$0.395/hr<br/><b>$288/mo</b>"]
         RES["<b>Resolver endpoint</b><br/>$0.25/hr · 2 ENIs mandatory<br/><b>$180/mo</b>"]
+        EKS["<b>EKS cluster</b><br/>$0.10/hr + nodes<br/><b>$73/mo</b>"]
         NAT["<b>NAT gateway</b><br/>$0.059/hr<br/><b>$43/mo</b>"]
         TGW["<b>TGW attachment</b><br/>$0.05/hr each<br/><b>$36/mo</b>"]
         VPN["<b>VPN connection</b><br/>$0.05/hr<br/><b>$36/mo</b>"]
     end
 
-    NFW --- RES --- NAT --- TGW --- VPN
+    NFW --- RES --- EKS --- NAT --- TGW --- VPN
 
     classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
     classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
     classDef costly fill:#6a040f,stroke:#ff8fa3,color:#fff
 
     class CANVAS canvas
-    class NAT,TGW,VPN billed
+    class NAT,TGW,VPN,EKS billed
     class NFW,RES costly
 ```
 
-All five are off by default and need both a feature flag and
+All six are off by default and need both a feature flag and
 `acknowledge_costs = true`. Prices are ap-southeast-1; see
 [`../cost-guide.md`](../cost-guide.md).
 

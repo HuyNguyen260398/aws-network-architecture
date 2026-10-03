@@ -6,8 +6,9 @@ A teaching repository. The Terraform here is written to be secure by default,
 but it is designed for a disposable learning account — not for production.
 
 **Deploy these labs in a sandbox AWS account you can afford to lose.** Several
-labs deliberately create misconfigured infrastructure (all of `labs/10`), and
-every lab expects to be destroyed within hours.
+labs deliberately create misconfigured infrastructure (lab 01 exposes a
+service it should not, and all of `labs/14-troubleshooting-challenges`), and
+the project expects to be destroyed within hours of your last session.
 
 ## Reporting a vulnerability
 
@@ -45,7 +46,7 @@ a bug worth reporting.
 
 **Terraform state contains secrets.** State is a plaintext record of every
 attribute Terraform manages, including values marked `sensitive` in outputs.
-Concretely, `labs/07-hybrid-networking` puts AWS-generated Site-to-Site VPN
+Concretely, `labs/12-hybrid-networking` puts AWS-generated Site-to-Site VPN
 pre-shared keys into state. Treat the state bucket as a secret store:
 
 - Keep Block Public Access on.

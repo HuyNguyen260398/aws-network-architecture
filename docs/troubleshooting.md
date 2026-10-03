@@ -1,6 +1,6 @@
 # Troubleshooting AWS networking
 
-A method, then the specific faults. [Lab 10](../labs/10-troubleshooting-challenges/README.md)
+A method, then the specific faults. [Lab 14](../labs/14-troubleshooting-challenges/README.md)
 is the hands-on version of this document.
 
 ---

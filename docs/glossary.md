@@ -80,7 +80,7 @@ through AWS or a partner, with weeks of lead time. 💰
 
 **Direct Connect gateway (DX gateway)** — Lets one Direct Connect connection
 reach VPCs in multiple Regions and multiple accounts. **Free** with no virtual
-interfaces attached, which is why [lab 07](../labs/07-hybrid-networking/README.md)
+interfaces attached, which is why [lab 12](../labs/12-hybrid-networking/README.md)
 can create a real one.
 
 ---

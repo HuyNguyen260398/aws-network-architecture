@@ -32,29 +32,26 @@ than at the end of the month.
 
 ---
 
-## The four domains
+## One project, fourteen stages
 
-The AWS Certified Advanced Networking – Specialty exam (ANS-C01) organises the
-subject into four domains. That exam **retires on 25 August 2026**, but the
-division is a good one and the labs map onto it:
+The labs build **one thing**: the network of a small online shop. Lab 01 is a
+single server; lab 13 is three tiers behind a load balancer, containers,
+Kubernetes, three VPCs on a Transit Gateway, an office on a VPN and a second
+Region. Each lab folder is the whole project at that stage, and applying it
+upgrades what the previous lab built.
 
-| Domain | What it covers | Labs |
-| --- | --- | --- |
-| **Network design** | Address planning, topology selection, hybrid and multi-Region architecture | 01, 04, 05, 07, 09 |
-| **Network implementation** | Building VPCs, connectivity, DNS, private service access | 01, 02, 03, 05, 06, 07 |
-| **Management and operations** | Monitoring, troubleshooting, automation | 08, 10 |
-| **Security, compliance and governance** | Filtering, inspection, encryption, least privilege | 01, 03, 08 |
+Read [`working-with-the-labs.md`](working-with-the-labs.md) before lab 02. It
+explains the shared state, how to move from one lab to the next, and how to
+keep the bill small when everything accumulates.
 
-The labs are ordered by dependency, not by domain, because you cannot design a
-network you have not built.
+Labs 01–07 follow
+[Every Networking Concept Explained In 20 Minutes](https://www.youtube.com/watch?v=xj_GjnD4uyI)
+chapter by chapter. [`concept-map.md`](concept-map.md) shows where each
+concept from the video is built.
 
 ---
 
-## Dependency map
-
-Every lab deploys and destroys independently. The arrows are **conceptual
-prerequisites** — what you should understand before starting, not what must
-still be running.
+## The order, and why
 
 ```mermaid
 ---
@@ -75,42 +72,49 @@ config:
     curve: rounded
     wrappingWidth: 420
 ---
-flowchart TD
+flowchart LR
     subgraph CANVAS[" "]
-        L01["01 · VPC fundamentals<br/><i>free</i>"]
-        L02["02 · Public and private subnets<br/><i>~$0.016/hr</i>"]
-        L03["03 · VPC endpoints<br/><i>~$0.005/hr</i>"]
-        L04["04 · VPC peering<br/><i>~$0.031/hr</i>"]
-        L05["05 · Transit Gateway<br/><b>~$0.15/hr</b>"]
-        L06["06 · DNS and PrivateLink<br/><i>~$0.011/hr</i>"]
-        L07["07 · Hybrid networking<br/><b>~$0.09/hr</b>"]
-        L08["08 · Security and observability<br/><i>~$0.016/hr</i>"]
-        L09["09 · Multi-Region<br/><i>~$0.021/hr</i>"]
-        L10["10 · Troubleshooting<br/><i>~$0.016/hr</i>"]
+        subgraph FOUND["One network · the video's story"]
+            L01["01 · Single server<br/><i>IP, DNS, ports</i>"]
+            L02["02 · Segmentation<br/><i>subnets, firewalls</i>"]
+            L03["03 · NAT"]
+            L04["04 · VPC endpoints"]
+        end
+        subgraph APPS["Running applications on it"]
+            L05["05 · Load balancing"]
+            L06["06 · Containers"]
+            L07["07 · Kubernetes<br/><b>~$0.25/hr</b>"]
+        end
+        subgraph OPS["Operating it"]
+            L08["08 · Security and observability"]
+            L14["14 · Troubleshooting"]
+        end
+        subgraph MANY["More than one network"]
+            L09["09 · VPC peering"]
+            L10["10 · Transit Gateway<br/><b>~$0.15/hr</b>"]
+            L11["11 · DNS and PrivateLink"]
+            L12["12 · Hybrid VPN<br/><b>~$0.08/hr</b>"]
+            L13["13 · Multi-Region"]
+        end
     end
 
-    L01 --> L02
-    L02 --> L03
-    L02 --> L04
-    L03 --> L06
-    L04 --> L05
-    L04 --> L09
-    L05 --> L07
-    L06 --> L07
-    L02 --> L08
-    L08 --> L10
-    L05 --> L09
+    L01 --> L02 --> L03 --> L04 --> L05 --> L06 --> L07 --> L08
+    L08 --> L09 --> L10 --> L11 --> L12 --> L13 --> L14
 
     classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
     classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
     classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
 
     class CANVAS canvas
+    class FOUND,APPS,OPS,MANY vpc
+    class L07,L10,L12 billed
     class L01 free
-    class L05,L07 billed
 ```
 
-Red is where the hourly charges are meaningful. Green is free.
+Red marks the labs whose opt-ins have a meaningful hourly charge. The order is
+a straight line because each lab changes the same project — but see "Starting
+in the middle" in [`working-with-the-labs.md`](working-with-the-labs.md).
 
 ---
 
@@ -118,117 +122,139 @@ Red is where the hourly charges are meaningful. Green is free.
 
 ### A weekend (about 8 hours, under USD 2)
 
-The core of AWS networking, skipping the expensive opt-ins.
+The video's story, hands-on, with the expensive opt-ins skipped.
 
 | | Lab | Time | Notes |
 | --- | --- | --- | --- |
-| 1 | 01 — VPC fundamentals | 30 min | Free. Do the IPv6 exercise. |
-| 2 | 02 — Public and private subnets | 45 min | Enable the NAT gateway for 30 minutes, then turn it off. |
-| 3 | 03 — VPC endpoints | 60 min | Do the free S3 half first. |
-| 4 | 04 — VPC peering | 60 min | The non-transitivity demonstration is the point. |
-| 5 | 08 — Security and observability | 75 min | Flow logs and Reachability Analyzer. |
-| 6 | 06 — DNS and PrivateLink | 75 min | Skip the Resolver endpoints. |
-| 7 | 10 — Troubleshooting | 90 min | Three or four challenges. |
+| 1 | 01 — Single server | 30 min | Do the third-application exercise. |
+| 2 | 02 — Segmentation | 45 min | The stateless-filtering exercise is the one to remember. |
+| 3 | 03 — NAT | 45 min | Enable the NAT gateway for 30 minutes, then turn it off. |
+| 4 | 04 — VPC endpoints | 45 min | The free S3 half first. |
+| 5 | 05 — Load balancing | 45 min | About four cents an hour. |
+| 6 | 06 — Containers | 60 min | Part 1 (Docker) needs no opt-in. |
+| 7 | 08 — Security and observability | 60 min | Flow logs and one fault. Skip lab 07 on this route; read its README. |
 
-Destroy each lab before starting the next.
+Destroy at the end, not between labs.
 
 ### Two weeks, thoroughly (about 25 hours, under USD 15)
 
-Every lab, every exercise, with the expensive ones enabled briefly.
+Every lab and exercise, each expensive opt-in on for one sitting.
 
-- **Week 1:** labs 01–05. Enable the Transit Gateway for one session in lab 05
-  (about USD 0.15/hour) and do all six exercises in one sitting.
-- **Week 2:** labs 06–10. Enable PrivateLink in lab 06, the simulated
-  on-premises VPN in lab 07, Network Firewall in lab 08 for thirty minutes, and
-  work every challenge in lab 10.
+- **Week 1:** labs 01–08. EKS (lab 07) and Network Firewall (lab 08) are the
+  two to switch on, use and switch off in the same hour.
+- **Week 2:** labs 09–14. Transit Gateway on for labs 10–13 while you are
+  working, off overnight.
 
-Budget roughly:
-
-| | Enabled for | Cost |
+| Opt-in | On for | Cost |
 | --- | --- | --- |
-| Lab 05 Transit Gateway | 3 hours | ~USD 0.45 |
-| Lab 06 PrivateLink | 2 hours | ~USD 0.09 |
-| Lab 06 Resolver endpoint | 30 min | ~USD 0.13 |
-| Lab 07 VPN + on-premises | 3 hours | ~USD 0.27 |
+| Lab 03 NAT gateway | 3 hours | ~USD 0.18 |
+| Lab 05 load balancer | 6 hours | ~USD 0.21 |
+| Lab 06 ECS | 2 hours | ~USD 0.05 |
+| Lab 07 EKS (+ NAT) | 2 hours | ~USD 0.60 |
 | Lab 08 Network Firewall | 30 min | ~USD 0.20 |
-| Lab 09 TGW peering | 1 hour | ~USD 0.20 |
-| Everything else, ~20 hours | | ~USD 0.40 |
+| Lab 10 Transit Gateway | 6 hours | ~USD 0.90 |
+| Lab 11 PrivateLink | 2 hours | ~USD 0.07 |
+| Lab 11 Resolver endpoint | 30 min | ~USD 0.13 |
+| Lab 12 VPN + office | 3 hours | ~USD 0.23 |
+| Lab 13 TGW peering | 1 hour | ~USD 0.10 |
+| Instances, ~25 hours | | ~USD 1.75 |
 
-**Total: under USD 2 of chargeable resources**, assuming you destroy promptly.
-The USD 15 figure is headroom for leaving something running overnight, which
-you will do at least once.
+**Total: under USD 5 of chargeable resources** if you turn things off
+promptly. The USD 15 figure is headroom for leaving something on overnight,
+which you will do at least once.
 
 ### Targeted study
 
 | If you need to understand… | Do these |
 | --- | --- |
-| Why my private subnet cannot reach the internet | 01, 02 |
-| Whether to use NAT or endpoints | 03 |
-| Connecting several VPCs | 04, 05 |
-| Why DNS resolves differently inside the VPC | 06 |
-| Connecting a data centre to AWS | 07 |
-| Why this connection is failing | 08, 10 |
-| Running in more than one Region | 09 |
-| Security groups versus network ACLs | 01, 08 |
+| The basics the video covers | 01, 02, 03 |
+| Why my private subnet cannot reach the internet | 02, 03 |
+| Whether to use NAT or endpoints | 04 |
+| Host- and path-based routing | 05, 07 |
+| How container and pod addresses relate to the VPC | 06, 07 |
+| Why this connection is failing | 08, 14 |
+| Connecting several VPCs | 09, 10 |
+| Why DNS resolves differently inside the VPC | 11 |
+| Exposing one service without a network connection | 11 |
+| Connecting a data centre to AWS | 12 |
+| Running in more than one Region | 13 |
+| Security groups versus network ACLs | 02, 08 |
+
+You can apply any lab to an empty state; it builds everything up to that
+stage.
 
 ---
 
 ## What each lab is actually for
 
-**01 — VPC fundamentals.** One idea: a subnet is public because of a route, not
-because of its name. Everything else follows. Free, so there is no reason not to
-do the IPv6 exercise while you are there.
+**01 — A single server.** One address, two applications, told apart by port.
+And one idea that everything else rests on: a subnet is public because of a
+route, not because of its name.
 
-**02 — Public and private subnets.** Two instances, identical except for their
-subnet. Watch one register with Systems Manager and the other fail, then fix it
-three ways at three prices. This is where NAT gateway cost stops being an
+**02 — Network segmentation.** The server becomes three tiers. One `curl`
+returns three nested answers, and each control you remove breaks exactly one
+of them. The network ACL exercise — a reply dropped by a stateless filter —
+is the most common real-world mistake in this repository.
+
+**03 — NAT.** Two private hosts and one public address between them. Run
+`curl checkip` on both. This is also where NAT gateway cost stops being an
 abstraction.
 
-**03 — Private AWS service access.** A VPC with **no internet gateway at all**,
-whose instances still read S3 and get a Session Manager shell. Separates
-"reaching AWS services" from "having internet access" — conflating those two is
-why so many VPCs have a NAT gateway they do not need.
+**04 — Private AWS access.** A host with no internet access reads S3. It
+separates "reaching AWS services" from "having internet access" — conflating
+the two is why so many VPCs have a NAT gateway they do not need.
 
-**04 — VPC peering.** Three VPCs. B is peered with A, C is peered with A, and B
-cannot reach C. That single property is the argument for Transit Gateway, and
-the comparison table at the end of this lab is worth memorising.
+**05 — Load balancing.** The shop gets a name that survives replacing a
+server, and routing decisions made by reading the request. Everything
+Kubernetes calls Ingress, done by hand first.
 
-**05 — Transit Gateway.** Hub-and-spoke with real segmentation. The association
-versus propagation distinction causes more confusion than anything else in AWS
-networking, and this lab is built around making it concrete. The most expensive
-lab here — work it in one sitting.
+**06 — Container networking.** The same application twice: behind Docker's
+bridge and port mapping, where the VPC never sees a container address, and on
+ECS, where each task is a VPC host. The contrast is the lesson.
 
-**06 — DNS and PrivateLink.** These are one lab because in practice a
-PrivateLink problem is a DNS problem. Split-horizon DNS, a real endpoint service
-behind an NLB, and the demonstration that PrivateLink works with **overlapping
-CIDRs** — which decides a lot of real architecture arguments.
-
-**07 — Hybrid networking.** A genuine IPsec tunnel to a "data centre" that is a
-second VPC running libreswan, configured from the pre-shared keys AWS generated.
-The tunnels really come up. Direct Connect is documented honestly: the free DX
-gateway is created, and the parts that need a physical cross-connect are
-explained rather than faked.
+**07 — Kubernetes networking.** Pod IPs, Services and Ingress, each mapped to
+something you already built. The most expensive lab per hour; do it in one
+sitting.
 
 **08 — Security and observability.** One question: was it blocked, or did it
-never arrive? Flow logs answer it; Reachability Analyzer names the component. Do
-this before lab 10.
+never arrive? Flow logs answer it; Reachability Analyzer names the component.
+Do not skip this before lab 14.
 
-**09 — Multi-Region.** The interesting number is 70 milliseconds. Also: what
-stops working across a Region boundary, and why a Transit Gateway peering
-attachment does not propagate routes.
+**09 — VPC peering.** Three VPCs. Shop and dev are both peered with shared and
+cannot reach each other. That single property is the argument for the next
+lab.
 
-**10 — Troubleshooting.** Nine deliberately broken scenarios. Hints and
-solutions are in separate files so you can genuinely attempt each one. This is
-the lab that turns knowledge into competence.
+**10 — Transit Gateway.** The peering connections are deleted and replaced
+with a hub. Association versus propagation causes more confusion than
+anything else in AWS networking, and this lab is built around making it
+concrete.
+
+**11 — DNS and PrivateLink.** Names instead of copied addresses, and the
+demonstration that a name resolving says nothing about whether you can
+connect. Then PrivateLink: dev gets one port of one service, and no network.
+
+**12 — Hybrid networking.** A genuine IPsec tunnel to an "office" that is a
+VPC running libreswan, configured from the pre-shared keys AWS generated. The
+tunnels really come up. Direct Connect is documented honestly: the free
+gateway is created, and the parts that need a physical circuit are explained
+rather than faked.
+
+**13 — Multi-Region.** The interesting number is 70 milliseconds. Also: what
+stops working across a Region boundary, and why connecting two Regions does
+not move a single user between them.
+
+**14 — Troubleshooting.** Six faults injected into the network you built.
+Hints and solutions are in separate files so you can genuinely attempt each
+one. This is the lab that turns knowledge into competence.
 
 ---
 
 ## The one habit that matters
 
-**Destroy every lab when you finish with it.**
+**Turn opt-ins off when you finish a lab, and destroy when you stop for the day.**
 
 ```bash
-terraform destroy
+terraform destroy          # from the lab folder you applied last
 ```
 
 Then sweep, because a partial destroy is silent:
@@ -264,7 +290,7 @@ shared services VPC, on-premises connectivity, no internet egress from
 production" — and build it from these modules. That is a different skill from
 following a lab.
 
-**Break things deliberately.** Lab 10's method generalises: take a working
+**Break things deliberately.** Lab 14's method generalises: take a working
 design, remove one thing, and predict the symptom before you observe it.
 
 ### On the certification
@@ -283,7 +309,8 @@ If you are sitting it before it retires, the gap between these labs and the exam
 is mostly:
 
 - Direct Connect specifics — LOA-CFA, LAG, MACsec, hosted versus dedicated
-- Load balancer internals — ALB, NLB and GWLB behaviour in depth
+- Load balancer internals — GWLB, and ALB and NLB behaviour in more depth
+  than labs 05 and 11 go
 - CloudFront and edge networking at length
 - Specific service quotas and limits
 - AWS Cloud WAN, which post-dates most of the exam material
@@ -292,6 +319,9 @@ is mostly:
 
 ## Reference
 
+- [`working-with-the-labs.md`](working-with-the-labs.md) — the shared state, moving between labs, destroying
+- [`concept-map.md`](concept-map.md) — the video's concepts, and where each is built
+- [`address-plan.md`](address-plan.md) — every range and port in the project
 - [`cost-guide.md`](cost-guide.md) — what everything costs, and the cleanup checklist
 - [`troubleshooting.md`](troubleshooting.md) — general diagnostic method
 - [`glossary.md`](glossary.md) — terms, defined

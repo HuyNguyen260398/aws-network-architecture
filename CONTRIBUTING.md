@@ -16,8 +16,8 @@ make precommit-install
 make check
 ```
 
-`make check` runs formatting, validation, TFLint, Checkov, and the module tests
-— exactly what CI runs.
+`make check` runs formatting, validation, TFLint, Checkov, and the module and
+lab tests — exactly what CI runs.
 
 ## Ground rules
 
@@ -29,15 +29,16 @@ troubleshooting sections, where they read state rather than change it.
 **Nothing expensive is on by default.** Any resource with an hourly or
 per-GB-processed charge needs its own `enable_*` variable defaulting to `false`,
 plus a validation that refuses to create it unless `acknowledge_costs = true`.
-See `labs/02-public-private-subnets/variables.tf` for the pattern.
+See `enable_nat_gateway` in `labs/03-nat-and-outbound/nat.tf` for the pattern.
 
 **No secrets, ever.** No credentials, account IDs, bucket names, ARNs from your
 own account, state files, plan files, or private keys. `.gitignore` and the
 gitleaks hook catch most of it; you are the backstop for the rest.
 
-**Every lab stands alone.** A lab must be deployable and destroyable without any
-other lab existing. Cross-lab references belong in prose, not in `remote_state`
-data sources.
+**Every lab folder is complete.** The labs are stages of one project and share
+one state, but each folder contains the whole configuration for its stage: it
+must apply to an empty state and destroy cleanly without any other folder.
+No `remote_state` data sources between labs.
 
 **No misleading resources.** If something cannot honestly be created in a
 learning account — a Direct Connect cross-connect, for instance — document the
@@ -73,16 +74,48 @@ README.md
 - Comment *networking decisions*, not Terraform syntax. `# NAT is single-AZ so
   the lab costs one gateway, not three` is useful. `# create a subnet` is not.
 
+## How the labs are organised
+
+The labs are **one project at fourteen stages**, not fourteen projects. Read
+[`docs/working-with-the-labs.md`](docs/working-with-the-labs.md) first. In
+short:
+
+- Every lab folder is the whole project at that stage and shares one state
+  key, `shop/terraform.tfstate`.
+- Lab N+1 is lab N plus one or two new files, named for what they add. Each
+  file holds its own variables, resources and outputs.
+- Earlier files are copied forward **unchanged** unless the new lab has to
+  alter them. `make lab-diff FROM=<lab> TO=<lab>` shows what differs.
+
+## Changing an existing lab
+
+A fix to a file in lab N must be made in **every later lab's copy** of that
+file. After editing, check them:
+
+```bash
+make lab-diff FROM=03-nat-and-outbound TO=14-troubleshooting-challenges
+```
+
+A file that should be identical must not appear in the output.
+
 ## Adding a lab
 
-1. Copy the closest existing lab as a starting point.
-2. Give it a unique backend key in `backend.tf`
-   (`labs/<NN-name>/terraform.tfstate`). Duplicate keys silently corrupt state.
-3. Write the README before the Terraform. If you cannot explain the traffic
-   flow, the architecture is not ready.
-4. Add the lab to the table in the root `README.md` and to `docs/learning-path.md`.
-5. Add its chargeable resources to `docs/cost-guide.md`.
-6. Run `make check`.
+1. Copy the **last** lab folder to a new one with the next number.
+2. Leave `backend.tf` alone: the state key is shared on purpose.
+3. Put the new stage in a new file. Change an existing file only when the new
+   stage has to, and say why in a comment at the top of that file.
+4. Every chargeable resource gets an `enable_*` flag, off by default — by
+   lab 14 everything earlier is still deployed, so nothing may assume it is
+   the only thing running.
+5. Add the new flags to `terraform.tfvars.example` and to both runs in
+   `tests/plan.tftest.hcl`.
+6. Write the README before the Terraform. If you cannot explain the traffic
+   flow, the architecture is not ready. State what changed from the previous
+   lab.
+7. Add the lab to the table in the root `README.md`, to
+   `docs/learning-path.md`, `docs/working-with-the-labs.md` and
+   `docs/cost-guide.md`.
+8. Run `make check`.
 
 Lab READMEs must contain: learning objectives, concepts, a Mermaid architecture
 diagram, traffic-flow explanation, resources created, cost, prerequisites,
@@ -100,7 +133,7 @@ without AWS credentials.
 
 Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`,
 `test:`, `ci:`. Scope with the lab or module where it helps —
-`feat(labs/05): add blackhole route example`.
+`feat(labs/10): add blackhole route example`.
 
 ## Reporting problems
 

@@ -15,10 +15,25 @@ gateway VPC endpoints, customer gateways, virtual private gateways, Direct
 Connect gateways (with no virtual interfaces), Transit Gateways themselves,
 DHCP option sets.
 
-**The five things that cost real money in a learning account:**
+**The six things that cost real money in a learning account:**
 
 | Resource | Per hour | Per month | Where |
 | --- | --- | --- | --- |
+| **AWS Network Firewall endpoint** | **USD 0.395** | **~USD 288** | Lab 08 |
+| **Route 53 Resolver endpoint** (2 mandatory ENIs) | **USD 0.25** | **~USD 180** | Lab 11 |
+| **EKS cluster** (control plane; nodes and load balancer extra) | **USD 0.10** | **~USD 73** | Lab 07 |
+| **NAT gateway** | USD 0.059 | ~USD 43 | Lab 03 |
+| **Transit Gateway attachment**, each | USD 0.05 | ~USD 36 | Labs 10, 13 |
+| **Site-to-Site VPN connection** | USD 0.05 | ~USD 36 | Lab 12 |
+
+All six are **off by default** and require both a feature flag and
+`acknowledge_costs = true`.
+
+**The labs share one deployment, so costs accumulate.** A flag switched on in
+lab 03 is still on in lab 09 unless you switch it off. See
+[`working-with-the-labs.md`](working-with-the-labs.md#cost-everything-accumulates).
+
+--- | --- | --- | --- |
 | **AWS Network Firewall endpoint** | **USD 0.395** | **~USD 288** | Lab 08 |
 | **Route 53 Resolver endpoint** (2 mandatory ENIs) | **USD 0.25** | **~USD 180** | Lab 06 |
 | **NAT gateway** | USD 0.059 | ~USD 43 | Lab 02 |
@@ -65,7 +80,7 @@ All five are **off by default** and require both a feature flag and
 | Public IPv4 address | USD 0.005 | ~USD 3.60 | Charged whether in use or not, since Feb 2024 |
 | **Idle Elastic IP** | USD 0.005 | ~USD 3.60 | The classic leftover |
 | `t4g.nano` | USD 0.0053 | ~USD 3.90 | The instance this repository uses |
-| `t4g.small` | USD 0.0212 | ~USD 15.50 | Lab 07's VPN router |
+| `t4g.small` | USD 0.0212 | ~USD 15.50 | Lab 12's VPN router |
 
 ### Per gigabyte
 
@@ -100,26 +115,34 @@ All five are **off by default** and require both a feature flag and
 
 ## Cost per lab
 
-| Lab | Default | Fully enabled | The expensive part |
+"Adds by default" is what the lab adds with every opt-in off. "Opt-ins" is
+what each of that lab's flags adds while it is on.
+
+| Lab | Adds by default | Opt-ins | The expensive part |
 | --- | --- | --- | --- |
-| 01 VPC fundamentals | **USD 0.00** | USD 0.00 | Nothing |
-| 02 Public/private subnets | ~USD 0.016/hr | ~USD 0.075/hr | NAT gateway |
-| 03 VPC endpoints | ~USD 0.005/hr | ~USD 0.038/hr | 3 interface endpoints |
-| 04 VPC peering | ~USD 0.031/hr | ~USD 0.031/hr | Just the instances |
-| 05 Transit Gateway | **USD 0.00** | **~USD 0.15/hr** | 3 attachments |
-| 06 DNS and PrivateLink | ~USD 0.011/hr | **~USD 0.55/hr** | 2 Resolver endpoints |
-| 07 Hybrid networking | **USD 0.00** | ~USD 0.09/hr | VPN + on-premises router |
-| 08 Security/observability | ~USD 0.016/hr | **~USD 0.41/hr** | Network Firewall |
-| 09 Multi-Region | ~USD 0.021/hr | ~USD 0.22/hr | 4 TGW attachments |
-| 10 Troubleshooting | ~USD 0.016/hr | ~USD 0.026/hr | Just the instances |
+| 01 Single server | ~USD 0.010/hr | — | One instance and its public IPv4 |
+| 02 Segmentation | ~USD 0.011/hr | — | Two more instances |
+| 03 NAT | — | ~USD 0.059/hr | NAT gateway |
+| 04 Private AWS access | Free | ~USD 0.033/hr | 3 interface endpoints |
+| 05 Load balancing | — | ~USD 0.035/hr | ALB and its two public IPv4 addresses |
+| 06 Containers | ~USD 0.016/hr | ~USD 0.024/hr | Docker host; 2 Fargate tasks |
+| 07 Kubernetes | — | **~USD 0.20–0.25/hr** | EKS control plane, nodes, Ingress ALB (and needs NAT) |
+| 08 Security/observability | cents | **~USD 0.395/hr** | Network Firewall |
+| 09 VPC peering | ~USD 0.021/hr | — | Two more instances |
+| 10 Transit Gateway | — | **~USD 0.15/hr** | 3 attachments |
+| 11 DNS and PrivateLink | cents | ~USD 0.036/hr · **USD 0.25/hr each** | NLB + endpoint; Resolver endpoints |
+| 12 Hybrid networking | Free | ~USD 0.076/hr | VPN + office router |
+| 13 Multi-Region | ~USD 0.010/hr | ~USD 0.10/hr | 2 more TGW attachments |
+| 14 Troubleshooting | — | ~USD 0.010/hr for two challenges | One more instance |
 
-**Working through every lab, destroying promptly, costs under USD 5.**
+**Running total with every opt-in off: about USD 0.07/hour at lab 14** —
+USD 1.70 a day. With every opt-in on at once: over USD 1.60/hour.
 
-Every lab prints its own running total:
+**Working through every lab, turning opt-ins off as you go, costs under
+USD 5.**
 
-```bash
-terraform output cost_warning
-```
+Each lab's README states its costs, and the expensive opt-ins print a
+warning on every `terraform plan` while they are on.
 
 ---
 
@@ -292,8 +315,10 @@ variable "enable_nat_gateway" {
 }
 ```
 
-**Cost visible in outputs.** Every lab has a `cost_warning` output computed from
-what is actually enabled.
+**Warnings while it is on.** The most expensive opt-ins have a `check` block
+that prints a cost warning on every `terraform plan` until they are turned
+off. The cheapest state — with nothing connected — warns too, so the plan
+always says which of the two you are in.
 
 **Small defaults.** `t4g.nano`, one-day log retention, single-AZ NAT, one subnet
 for interface endpoints, no detailed monitoring, no Elastic IPs unless a NAT
