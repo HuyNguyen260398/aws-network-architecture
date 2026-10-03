@@ -1,7 +1,18 @@
 # Design: AWS Networking Learning Labs
 
 Date: 2026-08-06
-Status: Approved
+Status: Approved. **Partly superseded on 2026-10-03** -- see below.
+
+> **Superseded 2026-10-03.** The labs are no longer independently deployable.
+> They were restructured into fourteen stages of one project (an online shop)
+> that share a single state key, `shop/terraform.tfstate`, with each lab
+> upgrading the previous lab's deployment. Three labs were added (load
+> balancing, containers, Kubernetes) to cover the concepts in the video
+> "Every Networking Concept Explained In 20 Minutes". The lab list, backend
+> keys and the goal "each lab initialises, applies, verifies, and destroys on
+> its own" below describe the earlier design. The current design is in
+> `docs/working-with-the-labs.md`. Toolchain, bootstrap, cost gating and the
+> module conventions are unchanged.
 
 ## Purpose
 

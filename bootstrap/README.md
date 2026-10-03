@@ -14,7 +14,7 @@ Every lab in this repository declares an S3 backend:
 ```hcl
 terraform {
   backend "s3" {
-    key          = "labs/01-vpc-fundamentals/terraform.tfstate"
+    key          = "shop/terraform.tfstate"
     encrypt      = true
     use_lockfile = true
   }
@@ -113,10 +113,11 @@ use_lockfile = true
 
 ## Wiring a lab to this backend
 
-Each lab ships a `backend.hcl.example`. For every lab you want to run:
+Each lab ships a `backend.hcl.example`. Fill it in once, in the first lab,
+and copy the result into each later lab:
 
 ```bash
-cd ../labs/01-vpc-fundamentals
+cd ../labs/01-single-server
 
 cp backend.hcl.example backend.hcl
 $EDITOR backend.hcl               # paste bucket + region from the output above
@@ -127,17 +128,18 @@ terraform init -backend-config=backend.hcl
 `backend.hcl` is gitignored. The bucket name is specific to your account and
 does not belong in version control.
 
-Each lab's `backend.tf` hardcodes a **unique `key`**:
+Every lab's `backend.tf` hardcodes the **same `key`**, `shop/terraform.tfstate`.
 
-| Lab | State key |
-| --- | --- |
-| 01-vpc-fundamentals | `labs/01-vpc-fundamentals/terraform.tfstate` |
-| 02-public-private-subnets | `labs/02-public-private-subnets/terraform.tfstate` |
-| … | `labs/<NN-name>/terraform.tfstate` |
+That is deliberate. The labs are fourteen stages of one project, so they
+describe the same infrastructure and share one state: applying lab 05 after
+lab 04 upgrades what lab 04 built. See
+[`docs/working-with-the-labs.md`](../docs/working-with-the-labs.md).
 
-Two labs sharing a key would overwrite each other's state. If you fork this
-repository and add a lab, give it a new key — this is the one thing in the
-backend setup that will silently destroy work if you get it wrong.
+Sharing a key is only correct **because** the configurations describe the same
+thing. Two unrelated projects sharing a key would overwrite each other's
+state. If you fork this repository to build something else, give it a new
+key — this is the one thing in the backend setup that will silently destroy
+work if you get it wrong.
 
 ### Verifying the backend works
 
@@ -159,7 +161,7 @@ The second command reports a lock held by the first, and you can see the lock
 object:
 
 ```bash
-aws s3 ls s3://$BUCKET/labs/01-vpc-fundamentals/ --recursive
+aws s3 ls s3://$BUCKET/shop/ --recursive
 # ... terraform.tfstate
 # ... terraform.tfstate.tflock     <- present only while an operation is running
 ```
