@@ -49,24 +49,44 @@ Transit Gateway ASN and ECMP
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph PROD["prod VPC 10.50.0.0/16"]
-        EP["ec2-prod"]
-        AP["attach subnet /28"]
-    end
-    subgraph DEV["dev VPC 10.51.0.0/16"]
-        ED["ec2-dev"]
-        AD["attach subnet /28"]
-    end
-    subgraph SH["shared VPC 10.52.0.0/16"]
-        ES["ec2-shared"]
-        AS["attach subnet /28"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph PROD["prod VPC 10.50.0.0/16"]
+            EP["ec2-prod"]
+            AP["attach subnet /28"]
+        end
+        subgraph DEV["dev VPC 10.51.0.0/16"]
+            ED["ec2-dev"]
+            AD["attach subnet /28"]
+        end
+        subgraph SH["shared VPC 10.52.0.0/16"]
+            ES["ec2-shared"]
+            AS["attach subnet /28"]
+        end
 
-    TGW{{"Transit Gateway<br/>ASN 64512<br/><i>gateway is free</i>"}}
+        TGW{{"Transit Gateway<br/>ASN 64512<br/><i>gateway is free</i>"}}
 
-    RTSPOKE["TGW RT <b>spoke</b><br/>associated: prod, dev<br/>learns: <b>shared only</b><br/>+ blackhole 192.0.2.0/24"]
-    RTSHARED["TGW RT <b>shared</b><br/>associated: shared<br/>learns: prod, dev"]
+        RTSPOKE["TGW RT <b>spoke</b><br/>associated: prod, dev<br/>learns: <b>shared only</b><br/>+ blackhole 192.0.2.0/24"]
+        RTSHARED["TGW RT <b>shared</b><br/>associated: shared<br/>learns: prod, dev"]
+    end
 
     AP -->|"attachment<br/><b>$0.05/hr</b>"| TGW
     AD -->|"attachment<br/><b>$0.05/hr</b>"| TGW
@@ -75,12 +95,17 @@ graph TB
     TGW --- RTSHARED
     EP -.->|"blocked at the gateway"| ED
 
-    style TGW fill:#1d3557,color:#fff
-    style RTSPOKE fill:#2d6a4f,color:#fff
-    style RTSHARED fill:#2d6a4f,color:#fff
-    style AP fill:#9d0208,color:#fff
-    style AD fill:#9d0208,color:#fff
-    style AS fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class PROD,DEV,SH vpc
+    class RTSPOKE,RTSHARED free
+    class TGW gateway
+    class AP,AD,AS billed
 ```
 
 ## Traffic flow

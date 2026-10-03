@@ -34,23 +34,43 @@ DNS-based versus route-based service access
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph VPC["VPC 10.30.0.0/16 — NO INTERNET GATEWAY"]
-        subgraph AZA["Availability Zone A"]
-            SUBA["private-a<br/>10.30.0.0/24"]
-            EC2["ec2 t4g.nano<br/>no public IP"]
-            EPSSM["vpce ssm<br/><b>ENI 10.30.0.x</b>"]
-            EPMSG["vpce ssmmessages<br/><b>ENI 10.30.0.y</b>"]
-            EPEC2["vpce ec2messages<br/><b>ENI 10.30.0.z</b>"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph VPC["VPC 10.30.0.0/16 — NO INTERNET GATEWAY"]
+            subgraph AZA["Availability Zone A"]
+                SUBA["private-a<br/>10.30.0.0/24"]
+                EC2["ec2 t4g.nano<br/>no public IP"]
+                EPSSM["vpce ssm<br/><b>ENI 10.30.0.x</b>"]
+                EPMSG["vpce ssmmessages<br/><b>ENI 10.30.0.y</b>"]
+                EPEC2["vpce ec2messages<br/><b>ENI 10.30.0.z</b>"]
+            end
+            subgraph AZB["Availability Zone B"]
+                SUBB["private-b<br/>10.30.1.0/24"]
+            end
+            RT["Private route tables<br/>10.30.0.0/16 → local<br/><i>pl-xxxx (S3) → vpce-xxxx</i>"]
         end
-        subgraph AZB["Availability Zone B"]
-            SUBB["private-b<br/>10.30.1.0/24"]
-        end
-        RT["Private route tables<br/>10.30.0.0/16 → local<br/><i>pl-xxxx (S3) → vpce-xxxx</i>"]
-    end
 
-    S3[("Amazon S3")]
-    SSM[("AWS Systems<br/>Manager")]
+        S3[("Amazon S3")]
+        SSM[("AWS Systems<br/>Manager")]
+    end
 
     EC2 --- SUBA
     SUBA --- RT
@@ -61,10 +81,17 @@ graph TB
     EPMSG --> SSM
     EPEC2 --> SSM
 
-    style EPSSM fill:#9d0208,color:#fff
-    style EPMSG fill:#9d0208,color:#fff
-    style EPEC2 fill:#9d0208,color:#fff
-    style RT fill:#2d6a4f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef az fill:#1c2128,stroke:#6e7681,color:#c9d1d9,stroke-dasharray:6 4
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class VPC vpc
+    class AZA,AZB az
+    class RT free
+    class EPSSM,EPMSG,EPEC2 billed
 ```
 
 Green is free. Red is billed by the hour.

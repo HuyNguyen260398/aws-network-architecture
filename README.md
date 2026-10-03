@@ -173,27 +173,47 @@ Suggested routes through them — a weekend, two weeks, or targeted study — ar
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph FOUND["Foundations"]
-        L01["01 · VPC fundamentals"]
-        L02["02 · Public/private subnets"]
-        L03["03 · VPC endpoints"]
-    end
-    subgraph CONN["Connectivity"]
-        L04["04 · VPC peering"]
-        L05["05 · Transit Gateway"]
-        L06["06 · DNS and PrivateLink"]
-        L09["09 · Multi-Region"]
-    end
-    subgraph HYB["Hybrid"]
-        L07["07 · VPN and Direct Connect"]
-    end
-    subgraph OPS["Operations"]
-        L08["08 · Security and observability"]
-        L10["10 · Troubleshooting"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph FOUND["Foundations"]
+            L01["01 · VPC fundamentals"]
+            L02["02 · Public/private subnets"]
+            L03["03 · VPC endpoints"]
+        end
+        subgraph CONN["Connectivity"]
+            L04["04 · VPC peering"]
+            L05["05 · Transit Gateway"]
+            L06["06 · DNS and PrivateLink"]
+            L09["09 · Multi-Region"]
+        end
+        subgraph HYB["Hybrid"]
+            L07["07 · VPN and Direct Connect"]
+        end
+        subgraph OPS["Operations"]
+            L08["08 · Security and observability"]
+            L10["10 · Troubleshooting"]
+        end
 
-    BOOT["bootstrap<br/>S3 state backend"]
+        BOOT["bootstrap<br/>S3 state backend"]
+    end
 
     BOOT --> FOUND
     L01 --> L02 --> L03
@@ -205,10 +225,17 @@ graph TB
     L05 --> L09
     L02 --> L08 --> L10
 
-    style L05 fill:#9d0208,color:#fff
-    style L07 fill:#9d0208,color:#fff
-    style L01 fill:#2d6a4f,color:#fff
-    style BOOT fill:#1d3557,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class FOUND,CONN,HYB,OPS vpc
+    class L01 free
+    class BOOT gateway
+    class L05,L07 billed
 ```
 
 Arrows are **conceptual prerequisites** — what to understand first, not what

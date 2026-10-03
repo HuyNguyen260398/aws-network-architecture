@@ -32,43 +32,73 @@ gateways · Session Manager as a routing test · security group statefulness
 ## Architecture
 
 ```mermaid
-graph TB
-    INET(("Internet"))
-    IGW["Internet Gateway<br/><i>free</i>"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        INET(["Internet"])
+        IGW["Internet Gateway<br/><i>free</i>"]
 
-    subgraph VPC["VPC 10.20.0.0/16"]
-        subgraph AZA["Availability Zone A"]
-            PUBA["public-a 10.20.0.0/24<br/>map_public_ip_on_launch = <b>true</b>"]
-            EC2PUB["ec2 public<br/>t4g.nano<br/>public + private IP"]
-            NAT["NAT Gateway<br/><b>opt-in, ~$0.059/hr</b>"]
-            PRIA["private-a 10.20.128.0/24"]
-            EC2PRI["ec2 private<br/>t4g.nano<br/>private IP only"]
-        end
-        subgraph AZB["Availability Zone B"]
-            PUBB["public-b 10.20.1.0/24"]
-            PRIB["private-b 10.20.129.0/24"]
-        end
+        subgraph VPC["VPC 10.20.0.0/16"]
+            subgraph AZA["Availability Zone A"]
+                PUBA["public-a 10.20.0.0/24<br/>map_public_ip_on_launch = <b>true</b>"]
+                EC2PUB["ec2 public<br/>t4g.nano<br/>public + private IP"]
+                NAT["NAT Gateway<br/><b>opt-in, ~$0.059/hr</b>"]
+                PRIA["private-a 10.20.128.0/24"]
+                EC2PRI["ec2 private<br/>t4g.nano<br/>private IP only"]
+            end
+            subgraph AZB["Availability Zone B"]
+                PUBB["public-b 10.20.1.0/24"]
+                PRIB["private-b 10.20.129.0/24"]
+            end
 
-        RTPUB["Public RT<br/>0.0.0.0/0 → igw"]
-        RTPRI["Private RT (per AZ)<br/>0.0.0.0/0 → nat <i>(only if enabled)</i>"]
+            RTPUB["Public RT<br/>0.0.0.0/0 → igw"]
+            RTPRI["Private RT (per AZ)<br/>0.0.0.0/0 → nat <i>(only if enabled)</i>"]
+        end
     end
 
-    EC2PUB --- PUBA
+    INET <--> IGW
+    IGW <-->|"0.0.0.0/0"| RTPUB
+    RTPUB --- PUBA
+    RTPUB --- PUBB
+    PUBA --- EC2PUB
+    PUBA --- NAT
     EC2PRI --- PRIA
-    NAT --- PUBA
-    PUBA --- RTPUB
-    PUBB --- RTPUB
     PRIA --- RTPRI
     PRIB --- RTPRI
-    RTPUB --> IGW
-    RTPRI -.->|opt-in| NAT
-    NAT --> IGW
-    IGW <--> INET
+    NAT -.-|"opt-in"| RTPRI
 
-    style NAT fill:#9d0208,color:#fff
-    style RTPUB fill:#2d6a4f,color:#fff
-    style RTPRI fill:#7f5539,color:#fff
-    style IGW fill:#1d3557,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef az fill:#1c2128,stroke:#6e7681,color:#c9d1d9,stroke-dasharray:6 4
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef private fill:#7f5539,stroke:#ddb892,color:#fff
+    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class VPC vpc
+    class AZA,AZB az
+    class RTPUB free
+    class RTPRI private
+    class IGW gateway
+    class NAT billed
 ```
 
 Red means billed by the hour.

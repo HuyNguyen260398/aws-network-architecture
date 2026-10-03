@@ -34,29 +34,53 @@ versus PrivateLink
 ## Architecture
 
 ```mermaid
-graph LR
-    subgraph B["VPC B — 10.41.0.0/16"]
-        EB["ec2-b"]
-        RTB["RT: 10.40.0.0/16 → pcx-ab"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph B["VPC B — 10.41.0.0/16"]
+            EB["ec2-b"]
+            RTB["RT: 10.40.0.0/16 → pcx-ab"]
+        end
 
-    subgraph A["VPC A — 10.40.0.0/16"]
-        EA["ec2-a"]
-        RTA["RT: 10.41.0.0/16 → pcx-ab<br/>10.42.0.0/16 → pcx-ac"]
-    end
+        subgraph A["VPC A — 10.40.0.0/16"]
+            EA["ec2-a"]
+            RTA["RT: 10.41.0.0/16 → pcx-ab<br/>10.42.0.0/16 → pcx-ac"]
+        end
 
-    subgraph C["VPC C — 10.42.0.0/16"]
-        EC["ec2-c"]
-        RTC["RT: 10.40.0.0/16 → pcx-ac"]
+        subgraph C["VPC C — 10.42.0.0/16"]
+            EC["ec2-c"]
+            RTC["RT: 10.40.0.0/16 → pcx-ac"]
+        end
     end
 
     RTB <-->|"pcx-ab"| RTA
     RTA <-->|"pcx-ac"| RTC
-    RTB -.->|"NO PATH<br/>peering is not transitive"| RTC
+    EB -.->|"NO PATH<br/>peering is not transitive"| EC
 
-    style RTA fill:#2d6a4f,color:#fff
-    style RTB fill:#2d6a4f,color:#fff
-    style RTC fill:#2d6a4f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+
+    class CANVAS canvas
+    class B,A,C vpc
+    class RTA,RTB,RTC free
 ```
 
 ## Traffic flow

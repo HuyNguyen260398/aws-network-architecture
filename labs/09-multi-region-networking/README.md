@@ -33,26 +33,55 @@ inter-Region data transfer pricing
 ## Architecture
 
 ```mermaid
-graph LR
-    subgraph P["ap-southeast-1 — Singapore"]
-        PVPC["VPC 10.90.0.0/16"]
-        PEC2["ec2-primary"]
-        PTGW["TGW ASN 64512<br/><b>opt-in</b>"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph P["ap-southeast-1 — Singapore"]
+            PVPC["VPC 10.90.0.0/16"]
+            PEC2["ec2-primary"]
+            PTGW["TGW ASN 64512<br/><b>opt-in</b>"]
+        end
 
-    subgraph S["ap-northeast-1 — Tokyo"]
-        SVPC["VPC 10.91.0.0/16"]
-        SEC2["ec2-secondary"]
-        STGW["TGW ASN 64513<br/><b>opt-in</b>"]
+        subgraph S["ap-northeast-1 — Tokyo"]
+            SVPC["VPC 10.91.0.0/16"]
+            SEC2["ec2-secondary"]
+            STGW["TGW ASN 64513<br/><b>opt-in</b>"]
+        end
+        PCX["inter-Region peering<br/><i>free to create, $0.02/GB each way</i><br/><b>~70 ms RTT</b>"]
+        TGWP["TGW peering<br/><b>$0.20/hr</b><br/><i>static routes only</i>"]
     end
 
     PEC2 --- PVPC
-    SEC2 --- SVPC
-    PVPC <-->|"inter-Region peering<br/><i>free to create, $0.02/GB each way</i><br/><b>~70 ms RTT</b>"| SVPC
-    PTGW <-.->|"TGW peering<br/><b>$0.20/hr</b><br/><i>static routes only</i>"| STGW
+    PVPC <--> PCX <--> SVPC
+    SVPC --- SEC2
+    PTGW <-.-> TGWP <-.-> STGW
 
-    style PTGW fill:#9d0208,color:#fff
-    style STGW fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class P,S vpc
+    class PTGW,STGW,TGWP billed
+    class PCX free
 ```
 
 ## What changes at a Region boundary

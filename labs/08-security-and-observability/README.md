@@ -33,33 +33,63 @@ inspection routing · least-privilege IAM for log delivery · log retention
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph VPC["VPC 10.80.0.0/16"]
-        subgraph PUB["public-a 10.80.0.0/24"]
-            CLIENT["ec2 client<br/>SG: outbound only"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph VPC["VPC 10.80.0.0/16"]
+            subgraph PUB["public-a 10.80.0.0/24"]
+                CLIENT["ec2 client<br/>SG: outbound only"]
+            end
+            subgraph PRIV["private-a 10.80.10.0/24"]
+                SERVER["ec2 server<br/>:8080<br/>SG: allows 8080 from client SG"]
+            end
+            subgraph FW["firewall-a 10.80.20.0/24 — opt-in"]
+                NFW["Network Firewall endpoint<br/><b>$0.395/hr</b>"]
+            end
+            NACL["Network ACL on private-a<br/>rule 90: <b>DENY tcp/8080</b><br/>rule 100: allow all from VPC"]
         end
-        subgraph PRIV["private-a 10.80.10.0/24"]
-            SERVER["ec2 server<br/>:8080<br/>SG: allows 8080 from client SG"]
-        end
-        subgraph FW["firewall-a 10.80.20.0/24 — opt-in"]
-            NFW["Network Firewall endpoint<br/><b>$0.395/hr</b>"]
-        end
-        NACL["Network ACL on private-a<br/>rule 90: <b>DENY tcp/8080</b><br/>rule 100: allow all from VPC"]
-    end
 
-    FL[("CloudWatch Logs<br/>VPC Flow Logs")]
-    RA["Reachability Analyzer<br/><i>$0.10 per analysis</i>"]
-    CT[("CloudTrail<br/><i>who changed what</i>")]
+        FL[("CloudWatch Logs<br/>VPC Flow Logs")]
+        RA["Reachability Analyzer<br/>analyses paths in the VPC<br/><i>$0.10 per analysis</i>"]
+        CT[("CloudTrail<br/>records changes to the VPC<br/><i>who changed what</i>")]
+    end
 
     CLIENT -->|"tcp/8080"| NACL
     NACL -.->|"REJECT"| SERVER
     VPC --> FL
-    RA -.analyses.-> VPC
-    CT -.records changes to.-> VPC
+    RA -.-> VPC
+    CT -.-> VPC
 
-    style NACL fill:#9d0208,color:#fff
-    style NFW fill:#6a040f,color:#fff
-    style FL fill:#2d6a4f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef az fill:#1c2128,stroke:#6e7681,color:#c9d1d9,stroke-dasharray:6 4
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+    classDef costly fill:#6a040f,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class VPC vpc
+    class PUB,PRIV,FW az
+    class FL free
+    class NACL billed
+    class NFW costly
 ```
 
 ## Traffic flow

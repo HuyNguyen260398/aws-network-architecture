@@ -22,35 +22,76 @@ image files, no external tooling, and a diff on a diagram is readable.
 Solid arrows are traffic paths. Dotted arrows are relationships, or paths that
 do **not** work.
 
+Each palette colour is a `classDef` (`free`, `private`, `gateway`, `billed`,
+`costly`) with a lighter border, so it stays legible on the dark canvas.
+
+### Layout and theme
+
+Every diagram starts with the same front matter and sits on its own dark
+canvas, so it looks identical in GitHub's light and dark modes:
+
+- `layout: elk` with `curve: rounded` draws connections as vertical and
+  horizontal segments with rounded corners. Renderers without ELK fall back to
+  the default layout.
+- `theme: base` plus the `themeVariables` block sets light text and lines.
+- Everything is wrapped in `subgraph CANVAS[" "]`, filled `#0d1117`. Top-level
+  boxes (a VPC, a Region) use class `vpc` (`#161b22`); nested ones (an
+  Availability Zone, a subnet) use class `az` (`#1c2128`, dashed).
+- **Diagrams with subgraphs flow left to right** (`flowchart LR`). Titles sit on
+  a box's top edge, so lines must enter through the sides or they run through
+  the title. Decision trees have no titled boxes and stay top-down.
+- Put long explanations in a node, not on an edge label. Labels wider than the
+  gap between two boxes overlap them.
+
 ---
 
 ## The whole repository
 
 ```mermaid
-graph TB
-    subgraph FOUND["Foundations — free or cents"]
-        L01["01 · VPC fundamentals"]
-        L02["02 · Public/private subnets"]
-        L03["03 · VPC endpoints"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph FOUND["Foundations — free or cents"]
+            L01["01 · VPC fundamentals"]
+            L02["02 · Public/private subnets"]
+            L03["03 · VPC endpoints"]
+        end
 
-    subgraph CONN["Connectivity"]
-        L04["04 · VPC peering"]
-        L05["05 · Transit Gateway"]
-        L06["06 · DNS and PrivateLink"]
-        L09["09 · Multi-Region"]
-    end
+        subgraph CONN["Connectivity"]
+            L04["04 · VPC peering"]
+            L05["05 · Transit Gateway"]
+            L06["06 · DNS and PrivateLink"]
+            L09["09 · Multi-Region"]
+        end
 
-    subgraph HYB["Hybrid"]
-        L07["07 · Site-to-Site VPN<br/>Direct Connect concepts"]
-    end
+        subgraph HYB["Hybrid"]
+            L07["07 · Site-to-Site VPN<br/>Direct Connect concepts"]
+        end
 
-    subgraph OPS["Operations"]
-        L08["08 · Security and observability"]
-        L10["10 · Troubleshooting"]
-    end
+        subgraph OPS["Operations"]
+            L08["08 · Security and observability"]
+            L10["10 · Troubleshooting"]
+        end
 
-    BOOT["bootstrap · S3 state backend"]
+        BOOT["bootstrap · S3 state backend"]
+    end
 
     BOOT --> FOUND
     L01 --> L02 --> L03
@@ -62,10 +103,17 @@ graph TB
     L05 --> L09
     L02 --> L08 --> L10
 
-    style L05 fill:#9d0208,color:#fff
-    style L07 fill:#9d0208,color:#fff
-    style L01 fill:#2d6a4f,color:#fff
-    style BOOT fill:#1d3557,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class FOUND,CONN,HYB,OPS vpc
+    class L01 free
+    class BOOT gateway
+    class L05,L07 billed
 ```
 
 ---
@@ -73,17 +121,37 @@ graph TB
 ## Deciding how to connect two networks
 
 ```mermaid
-graph TD
-    Q1{"Do the two sides need<br/>full IP connectivity,<br/>or just one service?"}
-    Q2{"How many VPCs?"}
-    Q3{"Do the CIDRs overlap?"}
-    Q4{"Is on-premises involved?"}
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph CANVAS[" "]
+        Q1{"Do the two sides need<br/>full IP connectivity,<br/>or just one service?"}
+        Q2{"How many VPCs?"}
+        Q3{"Do the CIDRs overlap?"}
+        Q4{"Is on-premises involved?"}
 
-    PL["<b>PrivateLink</b><br/>~$8/mo per consumer<br/>no routes exchanged<br/>overlapping CIDRs fine<br/>unidirectional"]
-    PEER["<b>VPC peering</b><br/>FREE<br/>not transitive<br/>n(n-1)/2 connections"]
-    TGW["<b>Transit Gateway</b><br/>~$36/mo per attachment<br/>transitive<br/>route tables = segmentation"]
-    READDR["<b>Re-address, or PrivateLink</b><br/>overlapping networks<br/>cannot be routed together"]
-    VPN["<b>Site-to-Site VPN</b> ~$36/mo<br/>or <b>Direct Connect</b><br/>terminate on a TGW if<br/>more than one VPC needs it"]
+        PL["<b>PrivateLink</b><br/>~$8/mo per consumer<br/>no routes exchanged<br/>overlapping CIDRs fine<br/>unidirectional"]
+        PEER["<b>VPC peering</b><br/>FREE<br/>not transitive<br/>n(n-1)/2 connections"]
+        TGW["<b>Transit Gateway</b><br/>~$36/mo per attachment<br/>transitive<br/>route tables = segmentation"]
+        READDR["<b>Re-address, or PrivateLink</b><br/>overlapping networks<br/>cannot be routed together"]
+        VPN["<b>Site-to-Site VPN</b> ~$36/mo<br/>or <b>Direct Connect</b><br/>terminate on a TGW if<br/>more than one VPC needs it"]
+    end
 
     Q1 -->|"one service"| PL
     Q1 -->|"full connectivity"| Q3
@@ -94,11 +162,15 @@ graph TD
     Q2 -->|"2, maybe 3"| PEER
     Q2 -->|"4 or more"| TGW
 
-    style PL fill:#2d6a4f,color:#fff
-    style PEER fill:#2d6a4f,color:#fff
-    style TGW fill:#9d0208,color:#fff
-    style VPN fill:#9d0208,color:#fff
-    style READDR fill:#6a040f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+    classDef costly fill:#6a040f,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class PL,PEER free
+    class TGW,VPN billed
+    class READDR costly
 ```
 
 The first question is the one people skip. A great many "we need to peer these
@@ -110,15 +182,35 @@ solves that without merging two address spaces forever.
 ## Giving a private subnet outbound access
 
 ```mermaid
-graph TD
-    Q1{"What does it<br/>need to reach?"}
-    Q2{"How many<br/>AWS services?"}
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph CANVAS[" "]
+        Q1{"What does it<br/>need to reach?"}
+        Q2{"How many<br/>AWS services?"}
 
-    GW["<b>Gateway endpoint</b><br/><b>FREE</b><br/>S3 and DynamoDB only<br/>this VPC only"]
-    IF["<b>Interface endpoints</b><br/>~$8/mo per ENI<br/>traffic stays on AWS<br/>reachable from on-prem"]
-    NAT["<b>NAT gateway</b><br/>~$43/mo + $0.059/GB<br/>reaches everything"]
-    EIGW["<b>Egress-only IGW</b><br/><b>FREE</b><br/>IPv6 outbound only"]
-    NOTHING["<b>Nothing</b><br/>FREE<br/>genuinely isolated"]
+        GW["<b>Gateway endpoint</b><br/><b>FREE</b><br/>S3 and DynamoDB only<br/>this VPC only"]
+        IF["<b>Interface endpoints</b><br/>~$8/mo per ENI<br/>traffic stays on AWS<br/>reachable from on-prem"]
+        NAT["<b>NAT gateway</b><br/>~$43/mo + $0.059/GB<br/>reaches everything"]
+        EIGW["<b>Egress-only IGW</b><br/><b>FREE</b><br/>IPv6 outbound only"]
+        NOTHING["<b>Nothing</b><br/>FREE<br/>genuinely isolated"]
+    end
 
     Q1 -->|"S3 or DynamoDB"| GW
     Q1 -->|"other AWS services"| Q2
@@ -128,11 +220,13 @@ graph TD
     Q2 -->|"up to ~5"| IF
     Q2 -->|"more than ~5"| NAT
 
-    style GW fill:#2d6a4f,color:#fff
-    style EIGW fill:#2d6a4f,color:#fff
-    style NOTHING fill:#2d6a4f,color:#fff
-    style IF fill:#9d0208,color:#fff
-    style NAT fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class GW,EIGW,NOTHING free
+    class IF,NAT billed
 ```
 
 Gateway endpoints are free and strictly better than routing S3 or DynamoDB
@@ -144,21 +238,41 @@ have them.
 ## Diagnosing a failed connection
 
 ```mermaid
-graph TD
-    S["Connection fails"]
-    T{"How does it fail?"}
-    TO["Times out after ~60s"]
-    RF["Connection refused"]
-    AD["AccessDenied, instant"]
-    DNS["Cannot resolve host"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph CANVAS[" "]
+        S["Connection fails"]
+        T{"How does it fail?"}
+        TO["Times out after ~60s"]
+        RF["Connection refused"]
+        AD["AccessDenied, instant"]
+        DNS["Cannot resolve host"]
 
-    RA["<b>Reachability Analyzer</b><br/>$0.10 · names the component"]
-    FL{"Flow logs:<br/>is there a record?"}
-    ROUTE["<b>Routing</b><br/>route tables both sides<br/>peering · TGW · blackholes"]
-    FILT["<b>Filtering</b><br/>security groups<br/>then NACLs in number order"]
-    APP["<b>Application</b><br/>listening? OS firewall?"]
-    POL["<b>Policy</b><br/>IAM · endpoint policy<br/>bucket policy"]
-    RES["<b>DNS</b><br/>VPC attributes<br/>zone associations"]
+        RA["<b>Reachability Analyzer</b><br/>$0.10 · names the component"]
+        FL{"Flow logs:<br/>is there a record?"}
+        ROUTE["<b>Routing</b><br/>route tables both sides<br/>peering · TGW · blackholes"]
+        FILT["<b>Filtering</b><br/>security groups<br/>then NACLs in number order"]
+        APP["<b>Application</b><br/>listening? OS firewall?"]
+        POL["<b>Policy</b><br/>IAM · endpoint policy<br/>bucket policy"]
+        RES["<b>DNS</b><br/>VPC attributes<br/>zone associations"]
+    end
 
     S --> T
     T -->|"timeout"| RA
@@ -170,9 +284,15 @@ graph TD
     FL -->|"REJECT"| FILT
     FL -->|"ACCEPT both ways"| APP
 
-    style RA fill:#2d6a4f,color:#fff
-    style ROUTE fill:#7f5539,color:#fff
-    style FILT fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef private fill:#7f5539,stroke:#ddb892,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class RA free
+    class ROUTE private
+    class FILT billed
 ```
 
 **A timeout means nothing answered. A refusal means something did.** That
@@ -186,20 +306,42 @@ Full method in [`../troubleshooting.md`](../troubleshooting.md).
 ## The five expensive resources
 
 ```mermaid
-graph LR
-    NFW["<b>Network Firewall</b><br/>$0.395/hr<br/><b>$288/mo</b>"]
-    RES["<b>Resolver endpoint</b><br/>$0.25/hr · 2 ENIs mandatory<br/><b>$180/mo</b>"]
-    NAT["<b>NAT gateway</b><br/>$0.059/hr<br/><b>$43/mo</b>"]
-    TGW["<b>TGW attachment</b><br/>$0.05/hr each<br/><b>$36/mo</b>"]
-    VPN["<b>VPN connection</b><br/>$0.05/hr<br/><b>$36/mo</b>"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        NFW["<b>Network Firewall</b><br/>$0.395/hr<br/><b>$288/mo</b>"]
+        RES["<b>Resolver endpoint</b><br/>$0.25/hr · 2 ENIs mandatory<br/><b>$180/mo</b>"]
+        NAT["<b>NAT gateway</b><br/>$0.059/hr<br/><b>$43/mo</b>"]
+        TGW["<b>TGW attachment</b><br/>$0.05/hr each<br/><b>$36/mo</b>"]
+        VPN["<b>VPN connection</b><br/>$0.05/hr<br/><b>$36/mo</b>"]
+    end
 
     NFW --- RES --- NAT --- TGW --- VPN
 
-    style NFW fill:#6a040f,color:#fff
-    style RES fill:#6a040f,color:#fff
-    style NAT fill:#9d0208,color:#fff
-    style TGW fill:#9d0208,color:#fff
-    style VPN fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+    classDef costly fill:#6a040f,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class NAT,TGW,VPN billed
+    class NFW,RES costly
 ```
 
 All five are off by default and need both a feature flag and
@@ -210,10 +352,11 @@ All five are off by default and need both a feature flag and
 
 ## Adding a diagram
 
-Put it in the lab README next to the explanation. Mermaid, styled with the
-palette above, and it must show the **mechanism** — the route, the ENI, the rule
-— rather than boxes labelled with service names. A diagram that does not say
-anything the prose does not is not worth the lines.
+Put it in the lab README next to the explanation. Mermaid, copying the front
+matter and `classDef` lines from an existing diagram, and it must show the
+**mechanism** — the route, the ENI, the rule — rather than boxes labelled with
+service names. A diagram that does not say anything the prose does not is not
+worth the lines.
 
 Check it renders by previewing the Markdown; GitHub renders ```` ```mermaid ````
 fences natively.
