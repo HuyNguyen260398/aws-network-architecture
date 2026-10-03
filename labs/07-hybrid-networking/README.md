@@ -35,29 +35,55 @@ gateways · source/destination checking on EC2 · reverse-path filtering
 ## Architecture
 
 ```mermaid
-graph LR
-    subgraph ONPREM["'on-premises' VPC 192.168.0.0/16"]
-        RTR["libreswan router<br/>t4g.small<br/>Elastic IP<br/><i>source_dest_check = false</i>"]
-        LAN["192.168.0.0/24"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph ONPREM["'on-premises' VPC 192.168.0.0/16"]
+            RTR["libreswan router<br/>t4g.small<br/>Elastic IP<br/><i>source_dest_check = false</i>"]
+            LAN["192.168.0.0/24"]
+        end
+
+        subgraph AWS["AWS VPC 10.70.0.0/16"]
+            VGW["Virtual Private Gateway<br/><i>free</i><br/>ASN 64512"]
+            HOST["ec2 test host<br/>10.70.0.x"]
+            RT["Route table<br/>192.168.0.0/16 → vgw<br/><i>propagated</i>"]
+        end
+
+        CGW["Customer Gateway<br/><i>free — just a record</i><br/>ASN 65000"]
     end
 
-    subgraph AWS["AWS VPC 10.70.0.0/16"]
-        VGW["Virtual Private Gateway<br/><i>free</i><br/>ASN 64512"]
-        HOST["ec2 test host<br/>10.70.0.x"]
-        RT["Route table<br/>192.168.0.0/16 → vgw<br/><i>propagated</i>"]
-    end
-
-    CGW["Customer Gateway<br/><i>free — just a record</i><br/>ASN 65000"]
-
-    RTR ---|"tunnel 1 — IKEv2 / ESP over UDP 4500"| VGW
-    RTR ---|"tunnel 2 — standby"| VGW
     CGW -.describes.-> RTR
-    HOST --- RT --- VGW
     LAN --- RTR
+    RTR ---|"tunnel 1<br/>IKEv2 / ESP<br/>UDP 4500"| VGW
+    RTR ---|"tunnel 2<br/>standby"| VGW
+    VGW --- RT --- HOST
 
-    style VGW fill:#2d6a4f,color:#fff
-    style CGW fill:#2d6a4f,color:#fff
-    style RTR fill:#7f5539,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef private fill:#7f5539,stroke:#ddb892,color:#fff
+
+    class CANVAS canvas
+    class ONPREM,AWS vpc
+    class VGW,CGW free
+    class RTR private
 ```
 
 ## Traffic flow
@@ -348,19 +374,43 @@ real and both are free.
 connection itself and the virtual interfaces on it.
 
 ```mermaid
-graph LR
-    DC["Your router<br/>in a colocation facility"]
-    XC["Cross-connect<br/><i>physical fibre — weeks of lead time</i>"]
-    CONN["DX Connection<br/>1/10/100 Gbps<br/><i>hourly port charge</i>"]
-    VIF["Virtual Interface<br/>private / public / transit"]
-    DXGW["DX Gateway<br/><b>free, created here</b>"]
-    VGW["VGW or TGW"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        DC["Your router<br/>in a colocation facility"]
+        XC["Cross-connect<br/><i>physical fibre — weeks of lead time</i>"]
+        CONN["DX Connection<br/>1/10/100 Gbps<br/><i>hourly port charge</i>"]
+        VIF["Virtual Interface<br/>private / public / transit"]
+        DXGW["DX Gateway<br/><b>free, created here</b>"]
+        VGW["VGW or TGW"]
+    end
 
     DC --> XC --> CONN --> VIF --> DXGW --> VGW
 
-    style DXGW fill:#2d6a4f,color:#fff
-    style XC fill:#9d0208,color:#fff
-    style CONN fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class DXGW free
+    class XC,CONN billed
 ```
 
 **Why the physical piece cannot be automated.** A Direct Connect connection is a

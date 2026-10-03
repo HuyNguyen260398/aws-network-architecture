@@ -37,41 +37,75 @@ referencing · optional IPv6 and egress-only internet gateways
 ## Architecture
 
 ```mermaid
-graph TB
-    IGW["Internet Gateway<br/><i>free</i>"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        INET(["Internet"])
+        IGW["<b>Internet gateway</b><br/>1:1 NAT · <i>free</i>"]
 
-    subgraph VPC["VPC 10.10.0.0/16"]
-        subgraph AZA["Availability Zone A"]
-            PUBA["public-a<br/>10.10.0.0/24"]
-            PRIA["private-a<br/>10.10.128.0/24"]
+        subgraph VPC["VPC · 10.10.0.0/16"]
+            RTPUB["<b>Public route table</b><br/>10.10.0.0/16 → local<br/><b>0.0.0.0/0 → igw</b>"]
+
+            %% Left-to-right, so lines enter boxes through their sides and never cross
+            %% the titles on the top edges. B is declared first so the layout puts A on top.
+            subgraph AZB["Availability Zone B"]
+                PUBB["<b>public-b</b><br/>10.10.1.0/24"]
+                PRIB["<b>private-b</b><br/>10.10.129.0/24"]
+            end
+            subgraph AZA["Availability Zone A"]
+                PUBA["<b>public-a</b><br/>10.10.0.0/24"]
+                PRIA["<b>private-a</b><br/>10.10.128.0/24"]
+            end
+
+            RTPRIA["<b>Private route table A</b><br/>10.10.0.0/16 → local<br/><i>no default route</i>"]
+            NACL["<b>Network ACL</b> · <i>stateless</i><br/>filters both private subnets<br/>in 100 allow VPC<br/>in 110 allow tcp 1024–65535<br/>out 100 allow all<br/>out 200 deny 192.0.2.0/24"]
+            RTPRIB["<b>Private route table B</b><br/>10.10.0.0/16 → local<br/><i>no default route</i>"]
         end
-        subgraph AZB["Availability Zone B"]
-            PUBB["public-b<br/>10.10.1.0/24"]
-            PRIB["private-b<br/>10.10.129.0/24"]
-        end
-
-        RTPUB["Public route table<br/>10.10.0.0/16 → local<br/><b>0.0.0.0/0 → igw</b>"]
-        RTPRIA["Private RT az0<br/>10.10.0.0/16 → local<br/><i>no default route</i>"]
-        RTPRIB["Private RT az1<br/>10.10.0.0/16 → local<br/><i>no default route</i>"]
-
-        NACL["Network ACL<br/><i>stateless, subnet-level</i>"]
     end
 
-    INET(("Internet"))
-
-    PUBA --- RTPUB
-    PUBB --- RTPUB
+    INET <--> IGW
+    IGW <-->|"0.0.0.0/0"| RTPUB
+    RTPUB --- PUBA
+    RTPUB --- PUBB
     PRIA --- RTPRIA
+    PRIA -.- NACL
+    PRIB -.- NACL
     PRIB --- RTPRIB
-    RTPUB -->|0.0.0.0/0| IGW
-    IGW <--> INET
-    NACL -.guards.-> PRIA
-    NACL -.guards.-> PRIB
 
-    style RTPUB fill:#2d6a4f,color:#fff
-    style RTPRIA fill:#7f5539,color:#fff
-    style RTPRIB fill:#7f5539,color:#fff
-    style IGW fill:#1d3557,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef az fill:#1c2128,stroke:#6e7681,color:#c9d1d9,stroke-dasharray:6 4
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef private fill:#7f5539,stroke:#ddb892,color:#fff
+    classDef gateway fill:#1d3557,stroke:#a8dadc,color:#fff
+    classDef filter fill:#30363d,stroke:#8b949e,color:#e6edf3
+    classDef net fill:#21262d,stroke:#8b949e,color:#e6edf3
+
+    class CANVAS canvas
+    class VPC vpc
+    class AZA,AZB az
+    class RTPUB,PUBA,PUBB free
+    class RTPRIA,RTPRIB,PRIA,PRIB private
+    class IGW gateway
+    class NACL filter
+    class INET net
 ```
 
 The bolded route is the entire difference between the green tables and the brown

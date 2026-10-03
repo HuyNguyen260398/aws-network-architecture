@@ -33,34 +33,58 @@ rules and rule associations · DNS over UDP and TCP
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph PROV["provider VPC 10.60.0.0/16"]
-        PI["ec2-provider<br/>python http.server :8080"]
-        NLB["Network Load Balancer<br/><b>internal, $0.0225/hr</b>"]
-        SVC["VPC Endpoint Service<br/>vpce-svc-0abc..."]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph PROV["provider VPC 10.60.0.0/16"]
+            PI["ec2-provider<br/>python http.server :8080"]
+            NLB["Network Load Balancer<br/><b>internal, $0.0225/hr</b>"]
+            SVC["VPC Endpoint Service<br/>vpce-svc-0abc..."]
+        end
+
+        subgraph CONS["consumer VPC 10.61.0.0/16"]
+            CI["ec2-consumer"]
+            EP["Interface Endpoint<br/><b>ENI, $0.011/hr</b>"]
+            RIN["Resolver INBOUND<br/><b>2 ENIs, $0.25/hr</b>"]
+            ROUT["Resolver OUTBOUND<br/><b>2 ENIs, $0.25/hr</b>"]
+        end
+
+        R53["Route 53 private zones<br/>lab06.internal<br/>example.com (split horizon)<br/>associated with both VPCs<br/><i>$0.50/month each</i>"]
     end
 
-    subgraph CONS["consumer VPC 10.61.0.0/16"]
-        CI["ec2-consumer"]
-        EP["Interface Endpoint<br/><b>ENI, $0.011/hr</b>"]
-        RIN["Resolver INBOUND<br/><b>2 ENIs, $0.25/hr</b>"]
-        ROUT["Resolver OUTBOUND<br/><b>2 ENIs, $0.25/hr</b>"]
-    end
-
-    R53["Route 53 private zones<br/>lab06.internal<br/>example.com (split horizon)<br/><i>$0.50/month each</i>"]
-
-    PI --> NLB --> SVC
-    SVC -.->|"PrivateLink<br/><b>NO routes exchanged</b>"| EP
-    CI --> EP
-    R53 -.associated.-> PROV
-    R53 -.associated.-> CONS
     CI -->|"resolves via base+2"| R53
+    CI --> EP
+    EP -.->|"PrivateLink<br/><b>NO routes exchanged</b>"| SVC
+    SVC --> NLB --> PI
 
-    style NLB fill:#9d0208,color:#fff
-    style EP fill:#9d0208,color:#fff
-    style RIN fill:#6a040f,color:#fff
-    style ROUT fill:#6a040f,color:#fff
-    style R53 fill:#2d6a4f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+    classDef costly fill:#6a040f,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class PROV,CONS vpc
+    class R53 free
+    class NLB,EP billed
+    class RIN,ROUT costly
 ```
 
 ## Traffic flow

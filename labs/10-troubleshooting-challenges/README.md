@@ -55,16 +55,36 @@ Before touching any specific challenge, internalise this order. It is cheaper at
 every step than the one after it.
 
 ```mermaid
-graph TD
-    START["Connection fails"]
-    RA["Reachability Analyzer<br/><i>USD 0.10, names the component</i>"]
-    FL["Flow logs: is there a record?"]
-    NONE["No record<br/><b>Never arrived</b>"]
-    REJ["REJECT<br/><b>Arrived, filtered</b>"]
-    ACC["ACCEPT both ways<br/><b>Network delivered it</b>"]
-    ROUTE["Route tables, both sides<br/>peering, TGW, blackholes"]
-    FILTER["Security groups, then NACLs<br/><i>in rule-number order</i>"]
-    APP["The application<br/>listener, OS firewall"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph CANVAS[" "]
+        START["Connection fails"]
+        RA["Reachability Analyzer<br/><i>USD 0.10, names the component</i>"]
+        FL["Flow logs: is there a record?"]
+        NONE["No record<br/><b>Never arrived</b>"]
+        REJ["REJECT<br/><b>Arrived, filtered</b>"]
+        ACC["ACCEPT both ways<br/><b>Network delivered it</b>"]
+        ROUTE["Route tables, both sides<br/>peering, TGW, blackholes"]
+        FILTER["Security groups, then NACLs<br/><i>in rule-number order</i>"]
+        APP["The application<br/>listener, OS firewall"]
+    end
 
     START --> RA
     RA -->|"still unclear"| FL
@@ -72,9 +92,15 @@ graph TD
     FL --> REJ --> FILTER
     FL --> ACC --> APP
 
-    style RA fill:#2d6a4f,color:#fff
-    style NONE fill:#7f5539,color:#fff
-    style REJ fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+    classDef private fill:#7f5539,stroke:#ddb892,color:#fff
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class RA free
+    class NONE private
+    class REJ billed
 ```
 
 **Reachability Analyzer first.** Ten cents, no packet sent, and it names the
@@ -92,25 +118,51 @@ Transit Gateway.
 The topology varies by challenge. The base is constant:
 
 ```mermaid
-graph TB
-    subgraph BASE["base VPC 10.100.0.0/16"]
-        CLIENT["client<br/>public-a<br/><i>your investigation starts here</i>"]
-        SERVER["server :8080<br/>app-a (private)"]
-        APPB["app-b (private, AZ 1)<br/><i>asymmetric-routing only</i>"]
-    end
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart LR
+    subgraph CANVAS[" "]
+        subgraph BASE["base VPC 10.100.0.0/16"]
+            CLIENT["client<br/>public-a<br/><i>your investigation starts here</i>"]
+            SERVER["server :8080<br/>app-a (private)"]
+            APPB["app-b (private, AZ 1)<br/><i>asymmetric-routing only</i>"]
+        end
 
-    subgraph PEER["peer VPC 10.101.0.0/16"]
-        PEERI["peer host"]
-    end
+        subgraph PEER["peer VPC 10.101.0.0/16"]
+            PEERI["peer host"]
+        end
 
-    OVERLAP["overlap VPC<br/><b>10.100.0.0/16</b><br/><i>overlapping-cidr only</i>"]
-    DNSVPC["dns VPC 10.102.0.0/16<br/><i>broken-dns only</i>"]
+        OVERLAP["overlap VPC<br/><b>10.100.0.0/16</b><br/><i>overlapping-cidr only</i>"]
+        DNSVPC["dns VPC 10.102.0.0/16<br/><i>broken-dns only</i>"]
+    end
 
     CLIENT -->|"tcp/8080"| SERVER
     CLIENT -.->|"peering"| PEERI
     APPB -.->|"peering?"| PEERI
 
-    style OVERLAP fill:#9d0208,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef vpc fill:#161b22,stroke:#8b949e,color:#e6edf3
+    classDef billed fill:#9d0208,stroke:#ff8fa3,color:#fff
+
+    class CANVAS canvas
+    class BASE,PEER vpc
+    class OVERLAP billed
 ```
 
 **Note:** the server sits in a private subnet with no NAT gateway and no VPC

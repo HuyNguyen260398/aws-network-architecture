@@ -24,14 +24,34 @@ different fixes, and from the client they look identical — a timeout.
 ## The order to work in
 
 ```mermaid
-graph TD
-    S["Connection fails"]
-    RA["Reachability Analyzer<br/>USD 0.10 · names the component"]
-    FL["Flow logs · is there a record?"]
-    R["Routing<br/>route tables both sides, peering,<br/>TGW route tables, blackholes"]
-    F["Filtering<br/>security groups, then NACLs<br/>in rule-number order"]
-    D["DNS<br/>resolving to the right address?"]
-    A["Application<br/>listening? OS firewall?"]
+---
+config:
+  layout: elk
+  theme: base
+  themeVariables:
+    lineColor: "#9fb3c8"
+    textColor: "#e6edf3"
+    primaryColor: "#21262d"
+    primaryTextColor: "#e6edf3"
+    primaryBorderColor: "#6e7681"
+    edgeLabelBackground: "#0d1117"
+    clusterBkg: "#161b22"
+    clusterBorder: "#6e7681"
+    titleColor: "#e6edf3"
+  flowchart:
+    curve: rounded
+    wrappingWidth: 420
+---
+flowchart TD
+    subgraph CANVAS[" "]
+        S["Connection fails"]
+        RA["Reachability Analyzer<br/>USD 0.10 · names the component"]
+        FL["Flow logs · is there a record?"]
+        R["Routing<br/>route tables both sides, peering,<br/>TGW route tables, blackholes"]
+        F["Filtering<br/>security groups, then NACLs<br/>in rule-number order"]
+        D["DNS<br/>resolving to the right address?"]
+        A["Application<br/>listening? OS firewall?"]
+    end
 
     S --> RA
     RA -->|"unclear or unsupported"| FL
@@ -42,7 +62,11 @@ graph TD
     F --> D
     D --> A
 
-    style RA fill:#2d6a4f,color:#fff
+    classDef canvas fill:#0d1117,stroke:#30363d,color:#e6edf3
+    classDef free fill:#2d6a4f,stroke:#74c69d,color:#fff
+
+    class CANVAS canvas
+    class RA free
 ```
 
 **Start with Reachability Analyzer.** Ten cents, no packet sent, and it names
