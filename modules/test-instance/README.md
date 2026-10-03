@@ -46,7 +46,7 @@ Registration takes one to three minutes after launch.
 module "host" {
   source = "../../modules/test-instance"
 
-  name      = "lab02-private-a"
+  name      = "shop-app"
   vpc_id    = module.vpc.vpc_id
   subnet_id = module.vpc.private_subnet_ids["app-a"]
 

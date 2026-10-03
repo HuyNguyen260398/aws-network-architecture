@@ -16,8 +16,8 @@ SHELL := /bin/bash
 # listed, so new labs are picked up automatically.
 TF_DIRS := $(shell find bootstrap modules labs -name '*.tf' -not -path '*/.terraform/*' -exec dirname {} \; 2>/dev/null | sort -u)
 
-# Directories that ship `terraform test` files.
-TEST_DIRS := $(shell find modules -name '*.tftest.hcl' -not -path '*/.terraform/*' -exec dirname {} \; 2>/dev/null | sed 's|/tests$$||' | sort -u)
+# Directories that ship `terraform test` files: every module, and every lab.
+TEST_DIRS := $(shell find modules labs -name '*.tftest.hcl' -not -path '*/.terraform/*' -exec dirname {} \; 2>/dev/null | sed 's|/tests$$||' | sort -u)
 
 TERRAFORM ?= terraform
 TFLINT    ?= tflint
@@ -121,11 +121,24 @@ clean: ## Remove .terraform directories and local plan files
 	@echo "Cleaned. Committed .terraform.lock.hcl files were left in place."
 
 .PHONY: list-labs
-list-labs: ## List every deployable lab and its backend state key
+list-labs: ## List the labs in order. They are stages of one project and share one state key
 	@for d in $$(find labs -maxdepth 1 -mindepth 1 -type d | sort); do \
 		key=$$(grep -h 'key ' $$d/backend.tf 2>/dev/null | head -1 | sed 's/.*= *//;s/"//g' || echo '-'); \
 		printf "  %-42s %s\n" "$$d" "$$key"; \
 	done
+
+# What one lab changes relative to another. Local-only files -- provider
+# caches, your backend.hcl and terraform.tfvars -- are left out, as are the
+# README and the generated example and test files, which differ in every lab.
+.PHONY: lab-diff
+lab-diff: ## Show what changed between two labs (FROM=04-private-aws-access TO=05-load-balancing)
+	@test -n "$(FROM)" -a -n "$(TO)" || { echo "usage: make lab-diff FROM=04-private-aws-access TO=05-load-balancing"; exit 1; }
+	@test -d labs/$(FROM) -a -d labs/$(TO) || { echo "No such lab. Run 'make list-labs'."; exit 1; }
+	@diff -ruN \
+		--exclude=.terraform --exclude=.terraform.lock.hcl --exclude=backend.hcl \
+		--exclude=terraform.tfvars --exclude=terraform.tfvars.example \
+		--exclude=README.md --exclude=tests --exclude='*.tfplan' \
+		labs/$(FROM) labs/$(TO) || true
 
 .PHONY: precommit-install
 precommit-install: ## Install the pre-commit hooks defined in .pre-commit-config.yaml
@@ -135,16 +148,16 @@ precommit-install: ## Install the pre-commit hooks defined in .pre-commit-config
 # -----------------------------------------------------------------------------
 # Convenience wrappers for working in a single lab.
 #
-#   make lab-init LAB=01-vpc-fundamentals
-#   make lab-plan LAB=01-vpc-fundamentals
+#   make lab-init LAB=01-single-server
+#   make lab-plan LAB=01-single-server
 #
 # `lab-apply` and `lab-destroy` are intentionally absent. Applying infrastructure
 # that costs money should be a command you type deliberately, in the lab
 # directory, having read that lab's README.
 # -----------------------------------------------------------------------------
 .PHONY: lab-init
-lab-init: ## Init a lab against the S3 backend (LAB=01-vpc-fundamentals)
-	@test -n "$(LAB)" || { echo "usage: make lab-init LAB=01-vpc-fundamentals"; exit 1; }
+lab-init: ## Init a lab against the S3 backend (LAB=01-single-server)
+	@test -n "$(LAB)" || { echo "usage: make lab-init LAB=01-single-server"; exit 1; }
 	@test -f labs/$(LAB)/backend.hcl || { \
 		echo "labs/$(LAB)/backend.hcl not found."; \
 		echo "Copy backend.hcl.example and fill in the bucket from 'terraform -chdir=bootstrap output'."; \
@@ -152,6 +165,6 @@ lab-init: ## Init a lab against the S3 backend (LAB=01-vpc-fundamentals)
 	$(TERRAFORM) -chdir=labs/$(LAB) init -backend-config=backend.hcl
 
 .PHONY: lab-plan
-lab-plan: ## Plan a lab (LAB=01-vpc-fundamentals)
-	@test -n "$(LAB)" || { echo "usage: make lab-plan LAB=01-vpc-fundamentals"; exit 1; }
+lab-plan: ## Plan a lab (LAB=01-single-server)
+	@test -n "$(LAB)" || { echo "usage: make lab-plan LAB=01-single-server"; exit 1; }
 	$(TERRAFORM) -chdir=labs/$(LAB) plan

@@ -1,0 +1,33 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+#
+# Every lab shares one state, so carry your terraform.tfvars forward from lab to
+# lab and add the new settings each lab introduces.
+
+aws_region   = "ap-southeast-1"
+project_name = "shop"
+
+vpc_cidr = "10.10.0.0/16"
+
+# ---------------------------------------------------------------------------
+# Lab 01 -- single server
+# ---------------------------------------------------------------------------
+# Who may reach the shop from the internet. 0.0.0.0/0 is everyone; narrow it to
+# "203.0.113.7/32" (your own address) if you prefer.
+allowed_client_cidr = "0.0.0.0/0"
+
+# Second layer of filtering, on the host itself (nftables).
+enable_host_firewall = true
+
+# Optional: an existing Route 53 PUBLIC hosted zone you own. Creates
+# shop.<zone> pointing at the shop. Leave null to use the AWS-assigned name.
+# public_zone_name = "example.com"
+
+# ---------------------------------------------------------------------------
+# Lab 02 -- segmentation
+# ---------------------------------------------------------------------------
+# No new settings. The single server becomes three, one per tier. Three
+# t4g.nano instances and one public IPv4 address: about USD 0.021/hour.
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

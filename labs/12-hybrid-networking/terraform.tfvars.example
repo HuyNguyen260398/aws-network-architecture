@@ -1,0 +1,174 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+#
+# Every lab shares one state, so carry your terraform.tfvars forward from lab to
+# lab and add the new settings each lab introduces.
+
+aws_region   = "ap-southeast-1"
+project_name = "shop"
+
+vpc_cidr = "10.10.0.0/16"
+
+# ---------------------------------------------------------------------------
+# Lab 01 -- single server
+# ---------------------------------------------------------------------------
+# Who may reach the shop from the internet. 0.0.0.0/0 is everyone; narrow it to
+# "203.0.113.7/32" (your own address) if you prefer.
+allowed_client_cidr = "0.0.0.0/0"
+
+# Second layer of filtering, on the host itself (nftables).
+enable_host_firewall = true
+
+# Optional: an existing Route 53 PUBLIC hosted zone you own. Creates
+# shop.<zone> pointing at the shop. Leave null to use the AWS-assigned name.
+# public_zone_name = "example.com"
+
+# ---------------------------------------------------------------------------
+# Lab 02 -- segmentation
+# ---------------------------------------------------------------------------
+# No new settings. The single server becomes three, one per tier. Three
+# t4g.nano instances and one public IPv4 address: about USD 0.021/hour.
+
+# ---------------------------------------------------------------------------
+# Lab 03 -- NAT gateway. OFF by default. ~USD 43/month EACH plus ~USD 0.059/GB.
+# ---------------------------------------------------------------------------
+# Turning this on gives the app and database hosts outbound internet access,
+# which is what lets their SSM agents register. Both flags are required.
+#
+# Turn it on, run the exercises, then turn it off again.
+#
+# acknowledge_costs  = true
+# enable_nat_gateway = true
+#
+# "single" = one gateway shared by every AZ (cheapest).
+# "per_az" = one per AZ (survives a zone failure, costs twice as much).
+nat_gateway_mode = "single"
+
+# IPv6 -- free. Gives the private tiers outbound access through an egress-only
+# internet gateway at zero cost.
+enable_ipv6                         = false
+enable_egress_only_internet_gateway = true
+
+# ---------------------------------------------------------------------------
+# Lab 04 -- VPC endpoints
+# ---------------------------------------------------------------------------
+# The S3 gateway endpoint is free and on by default.
+enable_s3_gateway_endpoint          = true
+restrict_s3_endpoint_to_shop_bucket = true
+
+# Interface endpoints for Session Manager. OFF by default. ~USD 0.033/hour
+# (~USD 24/month) for the three. With these on you can turn the NAT gateway off
+# and still get a shell on the private hosts.
+#
+# acknowledge_costs          = true
+# enable_interface_endpoints = true
+
+# ---------------------------------------------------------------------------
+# Lab 05 -- Application Load Balancer. OFF by default. ~USD 18/month.
+# ---------------------------------------------------------------------------
+# acknowledge_costs    = true
+# enable_load_balancer = true
+
+# ---------------------------------------------------------------------------
+# Lab 06 -- containers
+# ---------------------------------------------------------------------------
+# Docker host: one t4g.micro with a public IPv4 address, ~USD 0.016/hour.
+enable_docker_host = true
+
+# ECS on Fargate. OFF by default. ~USD 0.024/hour for two tasks.
+# With the load balancer on as well, the tasks are also reachable at /tasks.
+#
+# acknowledge_costs = true
+# enable_ecs        = true
+ecs_desired_count = 2
+
+# ---------------------------------------------------------------------------
+# Lab 07 -- Kubernetes (EKS). OFF by default. ~USD 0.20-0.25/hour.
+# ---------------------------------------------------------------------------
+# Needs the NAT gateway from lab 03 as well. Narrow the API endpoint to your
+# own address.
+#
+# acknowledge_costs    = true
+# enable_nat_gateway   = true
+# enable_eks           = true
+# eks_api_allowed_cidr = "203.0.113.7/32"
+
+# ---------------------------------------------------------------------------
+# Lab 08 -- security and observability
+# ---------------------------------------------------------------------------
+# Flow logs to CloudWatch Logs: a few cents for the volume a lab produces.
+enable_flow_logs        = true
+flow_log_retention_days = 1
+
+# The deliberate fault. Turn on, investigate, turn off.
+enable_nacl_block = false
+
+# USD 0.10 per analysis, two paths.
+run_reachability_analysis = false
+
+# A trail of network changes. Free for management events; pennies for storage.
+enable_cloudtrail = false
+
+# AWS Network Firewall. OFF by default. ~USD 0.395/hour -- USD 288/month.
+# THE MOST EXPENSIVE RESOURCE IN THE REPOSITORY.
+#
+# acknowledge_costs       = true
+# enable_network_firewall = true
+# firewall_blocked_port   = 9090
+
+# ---------------------------------------------------------------------------
+# Lab 09 -- more VPCs and peering
+# ---------------------------------------------------------------------------
+# Two more VPCs with one t4g.nano each: about USD 0.021/hour. Peering is free.
+shared_vpc_cidr = "10.20.0.0/16"
+dev_vpc_cidr    = "10.30.0.0/16"
+
+# ---------------------------------------------------------------------------
+# Lab 10 -- Transit Gateway. OFF by default. ~USD 0.15/hour (USD 110/month).
+# ---------------------------------------------------------------------------
+# Replaces the peering connections. While it is off, the VPCs are isolated.
+#
+# acknowledge_costs      = true
+# enable_transit_gateway = true
+
+# The segmentation hole. Leave off.
+allow_dev_to_shop = false
+
+# ---------------------------------------------------------------------------
+# Lab 11 -- DNS and PrivateLink
+# ---------------------------------------------------------------------------
+# A private hosted zone costs USD 0.50/month; a lab that lives a day rounds to
+# nothing.
+private_zone_name = "shop.internal"
+
+# A second private zone that overrides a public domain inside the VPCs.
+# split_horizon_domain = "example.com"
+
+# PrivateLink: payment service consumed from dev. OFF by default. ~USD 26/month.
+#
+# acknowledge_costs  = true
+# enable_privatelink = true
+
+# Route 53 Resolver endpoints. OFF by default. USD 0.25/hour EACH (USD 180/month).
+#
+# enable_resolver_inbound_endpoint  = true
+# enable_resolver_outbound_endpoint = true
+
+# ---------------------------------------------------------------------------
+# Lab 12 -- hybrid. VPN is OFF by default. ~USD 0.076/hour with the simulated
+# office (USD 0.05 for the connection, the rest for the router).
+# ---------------------------------------------------------------------------
+office_cidr = "192.168.0.0/16"
+
+# acknowledge_costs       = true
+# enable_site_to_site_vpn = true
+enable_simulated_office = true
+
+# Only with enable_simulated_office = false:
+# customer_gateway_ip = "203.0.113.10"
+
+# Free. The one part of Direct Connect that needs no physical circuit.
+enable_direct_connect_gateway = false
+
+# additional_tags = {
+#   Owner = "your-name"
+# }

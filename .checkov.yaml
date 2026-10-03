@@ -92,6 +92,36 @@ skip-check:
   #   `associate_public_ip_address` to false and each lab opts in explicitly.
   - CKV_AWS_88
 
+  # CKV_AWS_260: No security group should allow 0.0.0.0/0 to port 80.
+  #   The project is a public web shop: its frontend is meant to be reachable
+  #   from the internet on port 80, and labs 01-05 teach exactly which rule
+  #   makes that so. The source range is the `allowed_client_cidr` variable,
+  #   which learners can narrow to their own /32. HTTPS needs a domain and a
+  #   certificate the labs cannot assume; lab 05 explains the gap.
+  - CKV_AWS_260
+
+  # CKV_AWS_2, CKV_AWS_103, CKV_AWS_378, CKV2_AWS_20: load balancer listeners
+  #   and target groups should use HTTPS/TLS 1.2 and redirect HTTP.
+  #   HTTPS needs a certificate, and a certificate needs a domain the learner
+  #   controls. The labs cannot assume one, so the load balancer in lab 05
+  #   serves HTTP and the README explains what an HTTPS listener adds. Nothing
+  #   but stand-in JSON crosses it.
+  - CKV_AWS_2
+  - CKV_AWS_103
+  - CKV_AWS_378
+  - CKV2_AWS_20
+
+  # CKV2_AWS_28: public load balancers should be protected by WAF.
+  # CKV_AWS_91:  load balancers should have access logging enabled.
+  # CKV_AWS_150: load balancers should have deletion protection enabled.
+  #   A web ACL is billed monthly and is an application-layer control outside
+  #   the scope of a network lab; access logs need a bucket nobody will read;
+  #   deletion protection makes `terraform destroy` fail, which is exactly the
+  #   wrong outcome for something billed by the hour.
+  - CKV2_AWS_28
+  - CKV_AWS_91
+  - CKV_AWS_150
+
   # CKV_AWS_130: Subnets should not auto-assign public IPs.
   #   Lab 02 exists specifically to teach what `map_public_ip_on_launch` does.
   #   It is per-subnet and defaults to false in modules/vpc.

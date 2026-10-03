@@ -30,7 +30,7 @@ shows an `ACCEPT` on the way out and a `REJECT` on the way back.
 module "flow_logs" {
   source = "../../modules/flow-logs"
 
-  name          = "lab08-vpc"
+  name          = "shop"
   resource_type = "VPC"
   resource_id   = module.vpc.vpc_id
 

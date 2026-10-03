@@ -30,7 +30,7 @@ output "backend_hcl" {
 
 output "init_command_example" {
   description = "Example command for initialising a lab against this backend."
-  value       = "terraform -chdir=labs/01-vpc-fundamentals init -backend-config=backend.hcl"
+  value       = "terraform -chdir=labs/01-single-server init -backend-config=backend.hcl"
 }
 
 output "budget_arn" {
