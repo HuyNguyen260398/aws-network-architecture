@@ -10,6 +10,7 @@ locals {
       Project   = var.project_name
       Component = "terraform-backend"
       ManagedBy = "terraform"
+      Repo      = "aws-network-handons"
       Purpose   = "aws-networking-labs"
       # Marks this bucket as infrastructure that must outlive the labs, so a
       # cleanup script that sweeps by tag does not take the state bucket with it.

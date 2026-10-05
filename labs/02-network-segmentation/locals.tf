@@ -9,6 +9,7 @@ locals {
       Project     = var.project_name
       Environment = "learning"
       ManagedBy   = "terraform"
+      Repo        = "aws-network-handons"
       Lifecycle   = "ephemeral"
     },
     var.additional_tags,
