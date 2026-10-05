@@ -306,6 +306,7 @@ range is in [`docs/address-plan.md`](docs/address-plan.md).
     ├── address-plan.md         # every range and port in the project
     ├── cost-guide.md           # every price, plus the cleanup checklist
     ├── troubleshooting.md      # diagnostic method and reference commands
+    ├── runbook.md              # every command used in the labs, by lab
     ├── glossary.md             # terms, with the detail that matters
     └── diagrams/               # decision trees and cross-cutting diagrams
 ```
@@ -537,6 +538,7 @@ of an exam, and none of it becomes less useful on 26 August 2026.
 - [`docs/address-plan.md`](docs/address-plan.md) — every range and port
 - [`docs/cost-guide.md`](docs/cost-guide.md) — prices and cleanup
 - [`docs/troubleshooting.md`](docs/troubleshooting.md) — diagnostic method
+- [`docs/runbook.md`](docs/runbook.md) — every command used in the labs
 - [`docs/glossary.md`](docs/glossary.md) — terms
 - [`docs/diagrams/`](docs/diagrams/) — decision trees
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md)
